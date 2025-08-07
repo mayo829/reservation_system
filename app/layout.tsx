@@ -1,12 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Playfair_Display } from "next/font/google"
 import "./globals.css"
 import Navigation from "./components/Navigation"
 import Footer from "./components/Footer"
 import { CartProvider } from "./context/CartContext"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Playfair_Display({ 
+  subsets: ["latin"],
+  weight: "400"  // Or "200" for even thinner
+})
 
 export const metadata: Metadata = {
   title: "Lisboa Hotels - Luxury Accommodations Worldwide",
