@@ -16,17 +16,16 @@ export default function Navigation() {
           {/* Left Side - Menu Button */}
           <div className="justify-self-start">
             <button
-              className="flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
+              className="flex items-center gap-2 text-white hover:opacity-50 transition-opacity"
               onClick={() => setIsOpen(!isOpen)}
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              <span className="font-medium">Menu</span>
             </button>
           </div>
 
           {/* Center - Logo */}
           <div className="justify-self-center flex items-center justify-center -mt-2">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Link href="/" className="hover:opacity-50 transition-opacity">
               <svg width="48" height="48" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 50 L40 30 L60 50 L60 65 L20 65 Z" 
                       fill="none" 
@@ -38,14 +37,13 @@ export default function Navigation() {
           </div>
 
           {/* Right Side - Cart and Login */}
-          <div className="justify-self-end flex items-center gap-4">
+          <div className="justify-self-end flex items-center">
             {/* Cart/Checkout Button */}
             <Link
               href="/checkout"
-              className="flex items-center gap-2 text-white hover:text-gray-900 transition-colors px-3 py-2 rounded-full hover:bg-gray-100 relative"
+              className="flex items-center gap-2 text-white hover:opacity-50 transition-opacity px-1.5 py-2"
             >
               <ShoppingCart className="w-5 h-5" />
-              <span className="font-medium hidden sm:inline">Cart</span>
               {/* Cart Badge - dynamic count */}
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-darkblue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -57,10 +55,9 @@ export default function Navigation() {
             {/* Login Button */}
             <Link
               href="/login"
-              className="flex items-center gap-2 text-white hover:text-gray-900 transition-colors px-3 py-2 rounded-full hover:bg-gray-100"
+              className="flex items-center gap-2 text-white hover:opacity-50 transition-opacity px-1.5 py-2"
             >
               <User className="w-5 h-5" />
-              <span className="font-medium hidden sm:inline">Login</span>
             </Link>
           </div>
         </div>
@@ -78,21 +75,21 @@ export default function Navigation() {
               </Link>
               <Link
                 href="/about"
-                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="/gallery"
-                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Gallery
               </Link>
               <Link
                 href="/contact"
-                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Contact
