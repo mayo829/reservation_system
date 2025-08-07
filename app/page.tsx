@@ -7,7 +7,7 @@ import BookingBar from "./components/BookingBar"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-yellow-50/20">
+    <div className="min-h-screen bg-yellow-100/30">
       {/* Hero Section with Booking Bar */}
       <section className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-yellow-50/20 to-yellow-50/40 pt-16">
         <div className="container mx-auto px-6 text-center mb-12">
@@ -28,7 +28,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-yellow-50/20">
+      <section className="py-24 bg-yellow-100/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-light text-gray-900 mb-4">Why Choose Lisboa Hotels</h2>
@@ -49,7 +49,7 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-gray-50/50 hover:shadow-md transition-shadow">
+            <Card className="border-0 shadow-sm bg-darkblue/5 hover:shadow-md transition-shadow">
               <CardContent className="p-8 text-center">
                 <MapPin className="w-12 h-12 text-gray-700 mx-auto mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 mb-3">Prime Locations</h3>
@@ -73,7 +73,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Properties */}
-      <section className="py-24 bg-darkblue/5">
+      <section className="py-24 bg-darkblue/5 bg-yellow-100/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-light text-gray-900 mb-4">Featured Properties</h2>
@@ -160,7 +160,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-yellow-50/20">
+      <section className="py-24 bg-yellow-100/30">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-light text-gray-900 mb-6">Ready to Experience Luxury?</h2>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">

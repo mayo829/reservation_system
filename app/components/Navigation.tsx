@@ -66,13 +66,6 @@ export default function Navigation() {
         {isOpen && (
           <div className="absolute top-16 left-6 w-64 bg-white border border-gray-100 shadow-lg rounded-b-lg">
             <div className="flex flex-col py-4">
-            <Link
-                href="/booking"
-                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Room Availability
-              </Link>
               <Link
                 href="/about"
                 className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
@@ -86,6 +79,13 @@ export default function Navigation() {
                 onClick={() => setIsOpen(false)}
               >
                 Gallery
+              </Link>
+              <Link
+                href="/booking"
+                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Booking
               </Link>
               <Link
                 href="/contact"

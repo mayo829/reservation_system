@@ -15,7 +15,6 @@ export const metadata: Metadata = {
   title: "Lisboa Hotels - Luxury Accommodations Worldwide",
   description:
     "Experience luxury and comfort in our carefully curated collection of premium accommodations across the world's most beautiful destinations.",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
