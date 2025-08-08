@@ -10,29 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, MapPin, Search } from "lucide-react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
-
-const hotels = [
-  {
-    id: "manhattan",
-    name: "Lisboa Hotels Manhattan",
-    location: "New York, USA",
-  },
-  {
-    id: "malibu",
-    name: "Lisboa Hotels Malibu",
-    location: "California, USA",
-  },
-  {
-    id: "aspen",
-    name: "Lisboa Hotels Aspen",
-    location: "Colorado, USA",
-  },
-  {
-    id: "miami",
-    name: "Lisboa Hotels Miami Beach",
-    location: "Florida, USA",
-  },
-]
+import { useHotels } from "../context/HotelsContext"
 
 export default function BookingBar() {
   const [selectedHotel, setSelectedHotel] = useState("")
@@ -41,6 +19,7 @@ export default function BookingBar() {
   const [adults, setAdults] = useState("1")
   const [children, setChildren] = useState("0")
   const router = useRouter()
+  const { hotels, isLoading } = useHotels()
 
   const handleSearch = () => {
     if (selectedHotel && checkIn && checkOut) {
@@ -65,9 +44,9 @@ export default function BookingBar() {
           {/* Hotel Selection - Takes more space */}
           <div className="xl:col-span-2 space-y-2">
             <Label className="text-sm font-medium text-gray-700">Hotel Location</Label>
-            <Select value={selectedHotel} onValueChange={setSelectedHotel}>
+            <Select value={selectedHotel} onValueChange={setSelectedHotel} disabled={isLoading}>
               <SelectTrigger className="h-12">
-                <SelectValue placeholder="Choose location" />
+                <SelectValue placeholder={isLoading ? "Loading hotels..." : "Choose location"} />
               </SelectTrigger>
               <SelectContent>
                 {hotels.map((hotel) => (
@@ -167,11 +146,11 @@ export default function BookingBar() {
           {/* Search Button */}
           <Button
             onClick={handleSearch}
-            disabled={!isSearchEnabled}
+            disabled={!isSearchEnabled || isLoading}
             className="h-12 bg-darkblue hover:bg-darkblue/90 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Search className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Search</span>
+            <span className="hidden sm:inline">{isLoading ? "Loading..." : "Search"}</span>
           </Button>
         </div>
 

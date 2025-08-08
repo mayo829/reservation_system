@@ -47,7 +47,7 @@ export default function BookingPage() {
     const adultsParam = searchParams.get('adults')
     const childrenParam = searchParams.get('children')
 
-    if (hotel) setSelectedHotel(hotel)
+    if (hotel) setSelectedHotel(Number(hotel))
     if (checkInParam) setCheckIn(new Date(checkInParam))
     if (checkOutParam) setCheckOut(new Date(checkOutParam))
     if (adultsParam) setAdults(adultsParam)
