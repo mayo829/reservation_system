@@ -26,7 +26,7 @@ export default function Navigation() {
           {/* Center - Logo */}
           <div className="justify-self-center flex items-center justify-center -mt-2">
             <Link href="/" className="hover:opacity-50 transition-opacity">
-              <svg width="48" height="48" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+              <svg width="42" height="42" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 50 L40 30 L60 50 L60 65 L20 65 Z" 
                       fill="none" 
                       stroke="white" 
@@ -41,7 +41,7 @@ export default function Navigation() {
             {/* Cart/Checkout Button */}
             <Link
               href="/checkout"
-              className="flex items-center gap-2 text-white hover:opacity-50 transition-opacity px-1.5 py-2"
+              className="relative flex items-center gap-2 text-white hover:opacity-50 transition-opacity px-1.5 py-2"
             >
               <ShoppingCart className="w-5 h-5" />
               {/* Cart Badge - dynamic count */}
