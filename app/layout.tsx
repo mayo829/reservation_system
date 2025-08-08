@@ -5,6 +5,7 @@ import "./globals.css"
 import Navigation from "./components/Navigation"
 import Footer from "./components/Footer"
 import { CartProvider } from "./context/CartContext"
+import { HotelsProvider } from './context/HotelsContext'
 
 const inter = Playfair_Display({ 
   subsets: ["latin"],
@@ -25,11 +26,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CartProvider>
-          <Navigation />
-          {children}
-          <Footer />
-        </CartProvider>
+        <HotelsProvider>
+          <CartProvider>
+            <Navigation />
+            {children}
+            <Footer />
+          </CartProvider>
+        </HotelsProvider>
       </body>
     </html>
   )

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useCart } from "../context/CartContext"
+import { useHotels } from "../context/HotelsContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,53 +14,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, MapPin, Star, Wifi, Car, Coffee, Waves, CheckCircle, Mail, Phone } from "lucide-react"
 import { format } from "date-fns"
-import { XMLParser } from 'fast-xml-parser';
 import Image from "next/image"
-
-const defaultHotels = [
-  {
-    id: "manhattan",
-    name: "Lisboa Hotels Manhattan",
-    location: "New York, USA",
-    price: 450,
-    image: "/nyc.jpg?height=200&width=300",
-    amenities: ["Free WiFi", "Parking", "Restaurant", "Gym"],
-    description: "Luxury in the heart of Manhattan with stunning city views.",
-  },
-  {
-    id: "malibu",
-    name: "Lisboa Hotels Malibu",
-    location: "California, USA",
-    price: 650,
-    image: "/placeholder.svg?height=200&width=300",
-    amenities: ["Beach Access", "Spa", "Restaurant", "Pool"],
-    description: "Beachfront luxury with direct access to pristine beaches.",
-  },
-  {
-    id: "aspen",
-    name: "Lisboa Hotels Aspen",
-    location: "Colorado, USA",
-    price: 550,
-    image: "/placeholder.svg?height=200&width=300",
-    amenities: ["Ski Access", "Spa", "Restaurant", "Fireplace"],
-    description: "Mountain retreat with world-class skiing and spa facilities.",
-  },
-  {
-    id: "miami",
-    name: "Lisboa Hotels Miami Beach",
-    location: "Florida, USA",
-    price: 400,
-    image: "/placeholder.svg?height=200&width=300",
-    amenities: ["Beach Access", "Pool", "Restaurant", "Nightlife"],
-    description: "Art Deco elegance steps from South Beach.",
-  },
-]
 
 export default function BookingPage() {
   const [selectedHotel, setSelectedHotel] = useState("")
   const [checkIn, setCheckIn] = useState<Date>()
   const [checkOut, setCheckOut] = useState<Date>()
-  const [hotels, setHotels] = useState(defaultHotels)
   const [adults, setAdults] = useState("1")
   const [children, setChildren] = useState("0")
   const [rooms, setRooms] = useState("1")
@@ -77,6 +37,7 @@ export default function BookingPage() {
 
   const searchParams = useSearchParams()
   const { addToCart } = useCart()
+  const { hotels, isLoading, error } = useHotels()
 
   // Pre-populate form with URL parameters
   useEffect(() => {
@@ -101,116 +62,6 @@ export default function BookingPage() {
   }, [selectedHotel, checkIn, checkOut])
 
   const selectedHotelData = hotels.find((hotel) => hotel.id === selectedHotel)
-
-  // Fetch hotels from QloApps API on component mount
-  useEffect(() => {
-    const fetchHotels = async () => {
-      // const apiKey = process.env.QLOAPPS_API_KEY;
-      // const apiUrl = process.env.QLOAPPS_API_URL;
-
-      const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD';
-      const apiUrl = 'http://localhost/qloapps/api';
-
-      try {
-        // Fetch hotels from QloApps API
-        const url = `${apiUrl}/hotels?ws_key=${apiKey}`;
-        console.log('Fetching hotels from:', url);
-        
-        const response = await fetch(url);
-        const xmlText = await response.text();
-        
-
-
-        // Parse XML to JSON
-        const parser = new XMLParser({
-          ignoreAttributes: false,
-          attributeNamePrefix: "@_"
-        });
-        
-        const jsonData = parser.parse(xmlText);
-        console.log('Parsed data structure:', Object.keys(jsonData));
-        console.log('Full parsed data:', JSON.stringify(jsonData, null, 2));
-
-        // Extract hotel IDs from the parsed data
-        const hotelsData = jsonData.qloapps?.hotels?.hotel || [];
-        const hotelIds = Array.isArray(hotelsData) ? hotelsData : [hotelsData];
-        console.log(`Found ${hotelIds.length} hotel IDs:`, hotelIds);
-        console.log('Hotel data structure:', JSON.stringify(hotelIds, null, 2));
-
-        // Fetch detailed information for each hotel
-        const mappedHotels = await Promise.all(
-          hotelIds.map(async (hotelRef) => {
-            try {
-              const hotelId = hotelRef['@_id'];
-              const hotelDetailUrl = `${apiUrl.replace(/\/$/, '')}/hotels/${hotelId}?ws_key=${apiKey}`;
-              console.log(`Fetching details for hotel ${hotelId}:`, hotelDetailUrl);
-              
-              const hotelResponse = await fetch(hotelDetailUrl);
-              const hotelXmlText = await hotelResponse.text();
-              
-              if (!hotelResponse.ok) {
-                console.error(`Failed to fetch hotel ${hotelRef.id}:`, hotelResponse.status);
-                return null;
-              }
-
-              const hotelData = parser.parse(hotelXmlText);
-              const hotel = hotelData.qloapps?.hotel;
-              
-              if (!hotel) {
-                console.error(`No hotel data found for ID ${hotelRef.id}`);
-                return null;
-              }
-
-              // Helper function to safely extract text from nested objects
-              const extractText = (value) => {
-                if (typeof value === 'string') return value;
-                if (value && typeof value === 'object') {
-                  // Handle language elements with text content
-                  if (value.language && typeof value.language === 'string') return value.language;
-                  if (value.language && value.language['#text']) return value.language['#text'];
-                  if (value['#text']) return value['#text'];
-                  if (value.text) return value.text;
-                  if (value.id) return value.id;
-                  return JSON.stringify(value);
-                }
-                return '';
-              };
-
-              console.log(`Hotel ${extractText(hotel.hotel_name)} details:`, hotel);
-
-              return {
-                id: hotel.id,
-                name: extractText(hotel.hotel_name) || 'Hotel',
-                location: extractText(hotel.city) || 'Location',
-                price: parseFloat(hotel.price) || 0,
-                image: hotel.id_default_image ? `${apiUrl}/images/hotels/${hotel.id}/${hotel.id_default_image?.['#text']}?ws_key=${apiKey}` : "/placeholder.svg?height=200&width=300",
-                amenities: [], // You can fetch amenities separately if needed
-                description: extractText(hotel.short_description) || 'Hotel description',
-                address: extractText(hotel.address) || '',
-                city: extractText(hotel.city) || '',
-                country: extractText(hotel.country) || ''
-              };
-            } catch (error) {
-              console.error(`Error fetching hotel ${hotelRef.id}:`, error);
-              return null;
-            }
-          })
-        );
-
-        // Filter out any null results (failed fetches)
-        const validHotels = mappedHotels.filter(hotel => hotel !== null);
-
-        console.log(`Successfully mapped ${validHotels.length} hotels`);
-
-        setHotels(validHotels);
-        
-      } catch (error) {
-        console.error('Error in qloapps-hotels API:', error);
-      }
-    };
-
-    fetchHotels();
-  }, []);
 
   const calculateNights = () => {
     if (checkIn && checkOut) {
@@ -296,6 +147,39 @@ export default function BookingPage() {
     return selectedHotel && checkIn && checkOut && selectedRoom
   }
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-yellow-50/20 pt-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Loading hotels...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-yellow-50/20 pt-16 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-medium text-gray-900 mb-2">Unable to Load Hotels</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="bg-cyan-400 hover:bg-cyan-500 text-white"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   // Booking Confirmation View
   if (isBooked) {
     return (
@@ -312,7 +196,7 @@ export default function BookingPage() {
                   Booking <span className="font-medium text-cyan-400">Confirmed!</span>
                 </h1>
                 <p className="text-xl text-gray-600">
-                  Thank you for choosing SpiceHotels. Your reservation has been successfully confirmed.
+                  Thank you for choosing Lisboa Hotels. Your reservation has been successfully confirmed.
                 </p>
               </div>
 
@@ -486,7 +370,7 @@ export default function BookingPage() {
             Book Your <span className="font-medium text-cyan-400">Stay</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose from our collection of premium properties and create unforgettable memories at SpiceHotels.
+            Choose from our collection of premium properties and create unforgettable memories at Lisboa Hotels.
           </p>
         </div>
       </section>
@@ -607,8 +491,6 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-
-
                   {/* Available Rooms */}
                   {selectedHotel && checkIn && checkOut && (
                     <div className="space-y-4">
@@ -658,63 +540,6 @@ export default function BookingPage() {
                     ) : null}
                   </div>
                   )}
-
-                  {/* Guest Information */}
-                  {/* <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="Enter your first name"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Enter your last name"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="Enter your phone number"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                  </div> */}
-
-                  {/* Special Requests */}
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="requests">Special Requests (Optional)</Label>
-                    <Textarea
-                      id="requests"
-                      placeholder="Any special requests or preferences..."
-                      className="min-h-[100px]"
-                      value={requests}
-                      onChange={(e) => setRequests(e.target.value)}
-                    />
-                  </div> */}
                 </CardContent>
               </Card>
             </div>
@@ -829,10 +654,3 @@ export default function BookingPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
