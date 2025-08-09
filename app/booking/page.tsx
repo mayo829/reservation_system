@@ -89,6 +89,75 @@ export default function BookingPage() {
     return 0
   }
 
+  // async function updateRoomTypeAvailability(roomTypeId, availableQuantity) {
+  //   const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
+  //   const apiUrl = 'http://localhost/qloapps/api'
+  
+  //   try {
+  //     // Step 1: Get the current room type data
+  //     const getUrl = `${apiUrl}/room_types/${roomTypeId}?ws_key=${apiKey}`
+  //     const getResponse = await fetch(getUrl)
+  //     const currentXmlData = await getResponse.text()
+      
+  //     console.log('Current room data:', currentXmlData.substring(0, 200))
+  
+  //     if (!getResponse.ok) {
+  //       throw new Error('Failed to get current room data')
+  //     }
+  
+  //     // Step 2: Parse the XML and update only the quantity field
+  //     const { XMLParser, XMLBuilder } = await import('fast-xml-parser')
+      
+  //     const parser = new XMLParser({
+  //       ignoreAttributes: false,
+  //       attributeNamePrefix: "@_"
+  //     })
+      
+  //     const roomData = parser.parse(currentXmlData)
+      
+  //     // Update the minimal_quantity field
+  //     if (roomData.qloapps?.room_type) {
+  //       roomData.qloapps.room_type.minimal_quantity = availableQuantity
+  //     }
+  
+  //     // Step 3: Convert back to XML
+  //     const builder = new XMLBuilder({
+  //       ignoreAttributes: false,
+  //       attributeNamePrefix: "@_"
+  //     })
+      
+  //     const updatedXml = builder.build(roomData)
+  //     console.log('Updated XML:', updatedXml.substring(0, 200))
+  
+  //     // Step 4: Send the update with ps_method=PUT
+  //     const updateUrl = `${apiUrl}/room_types/${roomTypeId}?ws_key=${apiKey}&ps_method=PUT`
+      
+  //     const response = await fetch(updateUrl, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/xml',
+  //       },
+  //       body: updatedXml
+  //     })
+  
+  //     const responseText = await response.text()
+  //     console.log('Update response:', responseText)
+  
+  //     if (response.ok) {
+  //       console.log(`Room type ${roomTypeId} availability updated to ${availableQuantity}`)
+  //       return true
+  //     } else {
+  //       console.error('Failed to update room type:', response.status)
+  //       console.error('Error details:', responseText)
+  //       return false
+  //     }
+  
+  //   } catch (error) {
+  //     console.error('Error updating room type availability:', error)
+  //     return false
+  //   }
+  // }
+
   const handleCheckAvailability = async () => {
     if (!selectedHotel || !checkIn || !checkOut) return
     
@@ -171,7 +240,7 @@ export default function BookingPage() {
             const imageUrl = roomType.associations.images.image[0]['@_xlink:href']
             return {
               id: roomType.id,
-              type: extractText(roomType.name) || 'Standard Room',
+              type: extractText(roomType.name),
               price: parseFloat(roomType.price),
               capacity: `${parseInt(extractText(roomType.adults)) || 2} Adults, ${parseInt(extractText(roomType.children)) || 2} Children`,
               image: imageUrl ? `${imageUrl}?ws_key=${apiKey}` : "/placeholder-room.jpg",
@@ -614,7 +683,7 @@ export default function BookingPage() {
                               }}
                             />
                             {/* Overlay for readability */}
-                            <div className="absolute inset-0 bg-black bg-opacity-80" />
+                            <div className="absolute inset-0 bg-black bg-opacity-60" />
                             
                             {/* Content */}
                             <div className="relative z-10 p-4 text-white">
@@ -638,7 +707,8 @@ export default function BookingPage() {
                                 className="w-full bg-cyan-400 hover:bg-cyan-500 text-white rounded-full"
                                 onClick={() => {
                                   setSelectedRoom(room)
-                                  console.log('Selected room:', room.type, 'Price:', room.price, 'Image: ', room.image)
+                                  console.log('Selected room:', room.id, 'Price:', room.price, 'Image: ', room.image)
+                                  // updateRoomTypeAvailability(room.id, room.capacity - 1)
                                 }}
                               >
                                 Select This Room
@@ -670,7 +740,7 @@ export default function BookingPage() {
                     <div className="p-6">
                       <h3 className="text-xl font-medium text-gray-900 mb-2">{selectedHotelData.name}</h3>
                       <p className="text-gray-600 mb-4">{selectedHotelData.description}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
                         {selectedHotelData.amenities.slice(0, 2).map((amenity, index) => (
                           <div key={index} className="flex items-center gap-1">
                             {amenity === "Free WiFi" && <Wifi className="w-4 h-4" />}
@@ -682,10 +752,10 @@ export default function BookingPage() {
                           </div>
                         ))}
                       </div>
-                      <p className="text-2xl font-medium text-gray-900">
+                      {/* <p className="text-2xl font-medium text-gray-900">
                         ${selectedHotelData.price}
                         <span className="text-sm font-normal text-gray-600">/night</span>
-                      </p>
+                      </p> */}
                     </div>
                   </CardContent>
                 </Card>

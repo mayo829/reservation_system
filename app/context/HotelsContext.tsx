@@ -103,12 +103,14 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
 
             console.log(`Hotel ${extractText(hotel.hotel_name)} details:`, hotel)
 
+
             return {
               id: hotel.id,
               name: extractText(hotel.hotel_name) || 'Hotel',
               location: extractText(hotel.city) || 'Location',
               price: parseFloat(hotel.price) || 0,
               image: hotel.id_default_image ? `${apiUrl}/images/hotels/${hotel.id}/${hotel.id_default_image?.['#text']}?ws_key=${apiKey}` : "/placeholder.svg?height=200&width=300",
+              // amenities: hotel.associations.hotel_features.hotel_feature,
               amenities: [],
               associations: hotel.associations,
               description: extractText(hotel.short_description) || 'Hotel description',

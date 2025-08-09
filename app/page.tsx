@@ -1,11 +1,31 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Star, Wifi, Car, Coffee, Waves } from "lucide-react"
+import { MapPin, Star, Wifi, Car, Coffee, Waves, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import BookingBar from "./components/BookingBar"
+import { useHotels } from "./context/HotelsContext"
 
 export default function HomePage() {
+  const { hotels, isLoading, error } = useHotels()
+
+  // Get first 3 hotels for featured section
+  const featuredHotels = hotels.slice(0, 3)
+
+  // Helper function to get amenity icons
+  const getAmenityIcon = (amenity: string) => {
+    // const amenityLower = amenity.toLowerCase()
+    // if (amenityLower.includes('wifi') || amenityLower.includes('internet')) return <Wifi className="w-4 h-4" />
+    // if (amenityLower.includes('parking') || amenityLower.includes('garage')) return <Car className="w-4 h-4" />
+    // if (amenityLower.includes('restaurant') || amenityLower.includes('dining')) return <Coffee className="w-4 h-4" />
+    // if (amenityLower.includes('beach') || amenityLower.includes('ocean')) return <Waves className="w-4 h-4" />
+    // if (amenityLower.includes('spa') || amenityLower.includes('wellness')) return <Star className="w-4 h-4" />
+    // if (amenityLower.includes('ski') || amenityLower.includes('mountain')) return <MapPin className="w-4 h-4" />
+    return <Star className="w-4 h-4" /> // Default icon
+  }
+
   return (
     <div className="min-h-screen bg-yellow-100/30">
       {/* Hero Section with Booking Bar */}
@@ -80,82 +100,113 @@ export default function HomePage() {
             <p className="text-gray-600">Discover our most popular destinations</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="relative h-64">
-                <Image
-                  src="/nyc.jpg?height=256&width=400"
-                  alt="Lisboa Hotels Manhattan"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Lisboa Hotels Manhattan</h3>
-                <p className="text-gray-600 mb-4">New York, USA</p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Wifi className="w-4 h-4" />
-                    <span>Free WiFi</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Car className="w-4 h-4" />
-                    <span>Parking</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-darkblue" />
+              <span className="ml-2 text-gray-600">Loading our beautiful hotels...</span>
+            </div>
+          )}
 
-            <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="relative h-64">
-                <Image
-                  src="/malibu.jpg?height=256&width=400"
-                  alt="Lisboa Hotels Malibu"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Lisboa Hotels Malibu</h3>
-                <p className="text-gray-600 mb-4">California, USA</p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Waves className="w-4 h-4" />
-                    <span>Beach Access</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Coffee className="w-4 h-4" />
-                    <span>Restaurant</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">Sorry, we couldn't load our hotels at the moment.</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                className="border-darkblue text-darkblue hover:bg-darkblue hover:text-white"
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
 
-            <Card className="border-0 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="relative h-64">
-                <Image
-                  src="/aspen.jpg?height=256&width=400"
-                  alt="Lisboa Hotels Aspen"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Lisboa Hotels Aspen</h3>
-                <p className="text-gray-600 mb-4">Colorado, USA</p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>Ski Access</span>
+          {/* Hotels Grid */}
+          {!isLoading && !error && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredHotels.map((hotel) => (
+                <Card key={hotel.id} className="border-0 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+                  <div className="relative h-64">
+                    <Image
+                      src={hotel.image || "/placeholder-hotel.jpg?height=256&width=400"}
+                      alt={hotel.name}
+                      fill
+                      className="object-cover"
+                    />
+                    {/* Optional: Price overlay */}
+                    {hotel.pricePerNight && (
+                      <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-sm font-medium text-darkblue">
+                        ${hotel.pricePerNight}/night
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4" />
-                    <span>Spa</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">{hotel.name}</h3>
+                    <p className="text-gray-600 mb-4">{hotel.location}</p>
+                    
+                    {/* Star Rating */}
+                    {hotel.rating && (
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < hotel.rating ? "text-yellow-400 fill-current" : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-2 text-sm text-gray-600">({hotel.rating}/5)</span>
+                      </div>
+                    )}
+
+                    {/* Amenities */}
+                    {hotel.amenities && hotel.amenities.length > 0 && (
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        {hotel.amenities.slice(0, 2).map((amenity, index) => (
+                          <div key={index} className="flex items-center gap-1">
+                            {getAmenityIcon(amenity)}
+                            <span>{amenity}</span>
+                          </div>
+                        ))}
+                        {hotel.amenities.length > 2 && (
+                          <span className="text-xs text-gray-400">
+                            +{hotel.amenities.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Optional: Book Now Button */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <Button 
+                        asChild 
+                        className="w-full bg-darkblue hover:bg-darkblue/90 text-white"
+                        size="sm"
+                      >
+                        <Link href={`/booking?hotel=${hotel.id}`}>
+                          Book Now
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Show All Hotels Link */}
+          {!isLoading && !error && hotels.length > 3 && (
+            <div className="text-center mt-12">
+              <Button
+                asChild
+                variant="outline"
+                className="border-darkblue text-darkblue hover:bg-darkblue hover:text-white"
+              >
+                <Link href="/hotels">View All {hotels.length} Hotels</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
