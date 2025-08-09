@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { useCart } from "../context/CartContext"
 import { useHotels } from "../context/HotelsContext"
@@ -56,10 +56,18 @@ export default function BookingPage() {
 
   // Auto-check availability when hotel and dates are selected
   useEffect(() => {
-    if (selectedHotel && checkIn && checkOut && !hasCheckedAvailability) {
+    if (selectedHotel && checkIn && checkOut && hotels.length > 0 && !hasCheckedAvailability) {
       handleCheckAvailability()
     }
   }, [selectedHotel, checkIn, checkOut])
+
+  useEffect(() => {
+    // Only trigger when hotels just finished loading and we have form data
+    if (hotels.length > 0 && selectedHotel && checkIn && checkOut && !hasCheckedAvailability) {
+      console.log('Hotels loaded, auto-checking availability...')
+      handleCheckAvailability()
+    }
+  }, [hotels.length])
 
   const selectedHotelData = hotels.find((hotel) => hotel.id === selectedHotel)
 
@@ -83,43 +91,141 @@ export default function BookingPage() {
 
   const handleCheckAvailability = async () => {
     if (!selectedHotel || !checkIn || !checkOut) return
+    
+    const currentHotelData = hotels.find((hotel) => Number(hotel.id) === Number(selectedHotel))
+    console.log("selectedHotelData in function:", currentHotelData)
+
+    if (!currentHotelData) return
 
     setIsCheckingAvailability(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Extract room type references from the hotel data
+      let rooms = []
+      
+      if (currentHotelData.associations?.room_types?.room_types) {
+        const roomTypeRefs = currentHotelData.associations.room_types.room_types
+        
+        // Fetch details for each room type
+        const roomPromises = roomTypeRefs.map(async (roomRef) => {
+          try {
+            const roomTypeUrl = roomRef['@_xlink:href']
+            const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
+            
+            console.log(`Fetching room type from: ${roomTypeUrl}?ws_key=${apiKey}`)
+            
+            const response = await fetch(`${roomTypeUrl}?ws_key=${apiKey}`)
+            if (!response.ok) {
+              console.error(`Failed to fetch room type ${roomRef.id}:`, response.status)
+              return null
+            }
+            
+            const responseText = await response.text()
+            
+            // Parse XML response
+            const { XMLParser } = await import('fast-xml-parser')
+            const parser = new XMLParser({
+              ignoreAttributes: false,
+              attributeNamePrefix: "@_"
+            })
+            
+            const roomData = parser.parse(responseText)
+            const roomType = roomData.qloapps?.room_type
+            
+            if (!roomType) {
+              console.error(`No room type data found for ${roomRef.id}`)
+              return null
+            }
+            
+            // Helper function to extract text from CDATA/language elements
+            const extractText = (value) => {
+              if (typeof value === 'string') return value.trim()
+              if (value && typeof value === 'object') {
+                if (value['#text']) {
+                  const text = value['#text']
+                  return typeof text === 'string' ? text.trim() : String(text).trim()
+                }
+                if (value.language && value.language['#text']) {
+                  const text = value.language['#text']
+                  return typeof text === 'string' ? text.trim() : String(text).trim()
+                }
+                return String(value).trim()
+              }
+              return ''
+            }
+            
+            // Extract amenities from room features
+            const amenities = ['Free WiFi', 'Air Conditioning'] // Default amenities
+            if (roomType.associations?.room_type_features?.room_type_feature) {
+              const features = Array.isArray(roomType.associations.room_type_features.room_type_feature)
+                ? roomType.associations.room_type_features.room_type_feature
+                : [roomType.associations.room_type_features.room_type_feature]
+              
+              // Add more specific amenities based on features (customize as needed)
+              if (features.length > 0) {
+                amenities.push('Room Service', 'Mini Bar')
+              }
+            }
+            
+            // console.log("type:", roomType.associations.images.image[0]['@_xlink:href'])
+            const imageUrl = roomType.associations.images.image[0]['@_xlink:href']
+            return {
+              id: roomType.id,
+              type: extractText(roomType.name) || 'Standard Room',
+              price: parseFloat(roomType.price),
+              capacity: `${parseInt(extractText(roomType.adults)) || 2} Adults, ${parseInt(extractText(roomType.children)) || 2} Children`,
+              image: imageUrl ? `${imageUrl}?ws_key=${apiKey}` : "/placeholder-room.jpg",
+              amenities: amenities,
+              available: roomType.associations.hotel_rooms.hotel_room.length,
+              description: extractText(roomType.description_short) || extractText(roomType.description) || ''
+            }
+            
+          } catch (error) {
+            console.error(`Error fetching room type ${roomRef.id}:`, error)
+            return null
+          }
+        })
+        
+        // Wait for all room type fetches to complete
+        const roomResults = await Promise.all(roomPromises)
+        rooms = roomResults.filter(room => room !== null)
+      }
 
-    // Mock available rooms data
-    const mockRooms = [
-      {
-        id: 1,
-        type: "Deluxe Suite",
-        price: selectedHotelData?.price || 400,
-        capacity: "2 Adults, 2 Children",
-        amenities: ["King Bed", "City View", "Mini Bar", "Free WiFi"],
-        available: 3,
-      },
-      {
-        id: 2,
-        type: "Premium Suite",
-        price: (selectedHotelData?.price || 400) + 100,
-        capacity: "3 Adults, 2 Children",
-        amenities: ["King Bed + Sofa Bed", "Ocean View", "Balcony", "Room Service"],
-        available: 2,
-      },
-      {
-        id: 3,
-        type: "Family Suite",
-        price: (selectedHotelData?.price || 400) + 200,
-        capacity: "4 Adults, 3 Children",
-        amenities: ["2 Bedrooms", "Living Area", "Kitchenette", "Balcony"],
-        available: 1,
-      },
-    ]
+      // Fallback to mock rooms if no room types found or all failed
+      if (rooms.length === 0) {
+        rooms = [
+          {
+            id: 1,
+            type: "Deluxe Suite",
+            price: currentHotelData.price || 400,
+            capacity: "2 Adults, 2 Children",
+            amenities: ["King Bed", "City View", "Mini Bar", "Free WiFi"],
+            available: 3,
+          }
+        ]
+      }
 
-    setAvailableRooms(mockRooms)
-    setHasCheckedAvailability(true)
-    setIsCheckingAvailability(false)
+      console.log("Processed rooms:", rooms)
+      setAvailableRooms(rooms)
+      
+    } catch (error) {
+      console.error('Error processing room availability:', error)
+      
+      // Fallback on error
+      setAvailableRooms([
+        {
+          id: 1,
+          type: "Standard Room",
+          price: currentHotelData.price || 400,
+          capacity: "2 Adults, 2 Children",
+          amenities: ["Free WiFi", "Air Conditioning"],
+          available: 3,
+        }
+      ])
+    } finally {
+      setHasCheckedAvailability(true)
+      setIsCheckingAvailability(false)
+    }
   }
 
   const handleAddToCart = () => {
@@ -493,52 +599,55 @@ export default function BookingPage() {
 
                   {/* Available Rooms */}
                   {selectedHotel && checkIn && checkOut && (
-                    <div className="space-y-4">
-                      <Label>Available Rooms</Label>
-                      {isCheckingAvailability ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-                          <p className="text-gray-600">Checking room availability...</p>
-                        </div>
-                      ) : hasCheckedAvailability ? (
-                        <div className="space-y-3">
-                          {availableRooms.map((room) => (
-                          <Card
-                            key={room.id}
-                            className="border border-gray-200 hover:border-cyan-300 transition-colors"
-                          >
-                            <CardContent className="p-4">
+                    <div className="space-y-3">
+                      {availableRooms.map((room) => (
+                        <Card
+                          key={room.id}
+                          className="border border-gray-200 hover:border-cyan-300 transition-colors overflow-hidden"
+                        >
+                          <CardContent className="p-0 relative">
+                            {/* Background Image */}
+                            <div 
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{
+                                backgroundImage: `url(${room.image})`,
+                              }}
+                            />
+                            {/* Overlay for readability */}
+                            <div className="absolute inset-0 bg-black bg-opacity-80" />
+                            
+                            {/* Content */}
+                            <div className="relative z-10 p-4 text-white">
                               <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium text-gray-900">{room.type}</h4>
+                                <h4 className="font-medium text-white">{room.type}</h4>
                                 <div className="text-right">
-                                  <p className="text-lg font-medium">${room.price}/night</p>
-                                  <p className="text-sm text-gray-500">{room.available} available</p>
+                                  <p className="text-lg font-medium text-white">${room.price}/night</p>
+                                  <p className="text-sm text-red-500">{room.available} available</p>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">Capacity: {room.capacity}</p>
+                              <p className="text-sm text-gray-200 mb-2">Capacity: {room.capacity}</p>
                               <div className="flex flex-wrap gap-1 mb-3">
                                 {room.amenities.map((amenity, index) => (
-                                  <span key={index} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded">
+                                  <span key={index} className="text-xs bg-white bg-opacity-20 text-white px-2 py-1 rounded backdrop-blur-sm">
                                     {amenity}
                                   </span>
                                 ))}
                               </div>
                               <Button
                                 size="sm"
-                                className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full"
+                                className="w-full bg-cyan-400 hover:bg-cyan-500 text-white rounded-full"
                                 onClick={() => {
                                   setSelectedRoom(room)
-                                  console.log('Selected room:', room.type, 'Price:', room.price)
+                                  console.log('Selected room:', room.type, 'Price:', room.price, 'Image: ', room.image)
                                 }}
                               >
                                 Select This Room
                               </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>

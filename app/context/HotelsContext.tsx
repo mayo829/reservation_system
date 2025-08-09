@@ -110,6 +110,7 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
               price: parseFloat(hotel.price) || 0,
               image: hotel.id_default_image ? `${apiUrl}/images/hotels/${hotel.id}/${hotel.id_default_image?.['#text']}?ws_key=${apiKey}` : "/placeholder.svg?height=200&width=300",
               amenities: [],
+              associations: hotel.associations,
               description: extractText(hotel.short_description) || 'Hotel description',
               address: extractText(hotel.address) || '',
               city: extractText(hotel.city) || '',
