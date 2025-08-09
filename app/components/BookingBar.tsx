@@ -38,14 +38,14 @@ export default function BookingBar() {
   const isSearchEnabled = selectedHotel && checkIn && checkOut
 
   return (
-    <Card className="border-0 shadow-lg bg-white">
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-end">
+    <Card className="border-0 shadow-lg bg-white w-full max-w-none">
+      <CardContent className="p-6 w-full">
+        <div className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-end w-full min-w-full">
           {/* Hotel Selection - Takes more space */}
-          <div className="xl:col-span-2 space-y-2">
+          <div className="xl:col-span-2 space-y-2 w-full min-w-0">
             <Label className="text-sm font-medium text-gray-700">Hotel Location</Label>
             <Select value={selectedHotel} onValueChange={setSelectedHotel} disabled={isLoading}>
-              <SelectTrigger className="h-12">
+              <SelectTrigger className="h-12 w-full min-w-0">
                 <SelectValue placeholder={isLoading ? "Loading hotels..." : "Choose location"} />
               </SelectTrigger>
               <SelectContent>
@@ -64,62 +64,60 @@ export default function BookingBar() {
             </Select>
           </div>
 
-          {/* Check-in Date - Compact */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Check-in</Label>
+          {/* Date Range Selection */}
+          <div className="xl:col-span-2 space-y-2 w-full min-w-0">
+            <Label className="text-sm font-medium text-gray-700">Stay Dates</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-12 w-full justify-center text-center font-normal bg-transparent px-2"
+                  className="h-12 w-full min-w-0 justify-start text-left font-normal bg-transparent px-3"
                 >
-                  <CalendarIcon className="mr-1 h-4 w-4" />
-                  <span className="text-sm">{checkIn ? format(checkIn, "MMM dd") : "Select"}</span>
+                  <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm truncate">
+                    {checkIn && checkOut 
+                      ? `${format(checkIn, "MMM dd")} - ${format(checkOut, "MMM dd")}`
+                      : "Select dates"}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar 
-                  mode="single" 
-                  selected={checkIn} 
-                  onSelect={setCheckIn} 
-                  initialFocus
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Check-out Date - Compact */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Check-out</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-12 w-full justify-center text-center font-normal bg-transparent px-2"
-                >
-                  <CalendarIcon className="mr-1 h-4 w-4" />
-                  <span className="text-sm">{checkOut ? format(checkOut, "MMM dd") : "Select"}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar 
-                  mode="single" 
-                  selected={checkOut} 
-                  onSelect={setCheckOut} 
-                  initialFocus
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
+                <div className="w-[300px] h-[300px]">
+                  <Calendar 
+                    mode="range" 
+                    selected={{ from: checkIn, to: checkOut }}
+                    onSelect={(range) => {
+                      setCheckIn(range?.from);
+                      setCheckOut(range?.to);
+                    }}
+                    initialFocus
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    numberOfMonths={1}
+                    modifiers={{
+                      selected: (date) => {
+                        if (!checkIn || !checkOut) return false;
+                        return date >= checkIn && date <= checkOut;
+                      },
+                    }}
+                    modifiersStyles={{
+                      selected: {
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                      }
+                    }}
+                    fixedWeeks
+                  />
+                </div>
               </PopoverContent>
             </Popover>
           </div>
 
           {/* Guests - Optimized Layout */}
-          <div className="space-y-2">
+          <div className="space-y-2 w-full min-w-0">
             <Label className="text-sm font-medium text-gray-700">Guests</Label>
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-2 gap-1 w-full">
               <Select value={adults} onValueChange={setAdults}>
-                <SelectTrigger className="h-12 text-xs">
+                <SelectTrigger className="h-12 text-xs w-full min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -130,7 +128,7 @@ export default function BookingBar() {
                 </SelectContent>
               </Select>
               <Select value={children} onValueChange={setChildren}>
-                <SelectTrigger className="h-12 text-xs">
+                <SelectTrigger className="h-12 text-xs w-full min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,23 +142,25 @@ export default function BookingBar() {
           </div>
 
           {/* Search Button */}
-          <Button
-            onClick={handleSearch}
-            disabled={!isSearchEnabled || isLoading}
-            className="h-12 bg-darkblue hover:bg-darkblue/90 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Search className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">{isLoading ? "Loading..." : "Search"}</span>
-          </Button>
+          <div className="w-full min-w-0">
+            <Button
+              onClick={handleSearch}
+              disabled={!isSearchEnabled || isLoading}
+              className="h-12 w-full min-w-0 bg-darkblue hover:bg-darkblue/90 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Search className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">{isLoading ? "Loading..." : "Search"}</span>
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Layout - Stack vertically on small screens */}
-        <div className="xl:hidden mt-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
+        <div className="xl:hidden mt-4 w-full">
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <div className="space-y-2 w-full min-w-0">
               <Label className="text-sm font-medium text-gray-700">Adults</Label>
               <Select value={adults} onValueChange={setAdults}>
-                <SelectTrigger className="h-12">
+                <SelectTrigger className="h-12 w-full min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,10 +171,10 @@ export default function BookingBar() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 w-full min-w-0">
               <Label className="text-sm font-medium text-gray-700">Children</Label>
               <Select value={children} onValueChange={setChildren}>
-                <SelectTrigger className="h-12">
+                <SelectTrigger className="h-12 w-full min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
