@@ -249,15 +249,39 @@ export default function RoomTypePage() {
     addToCart(cartItem);
     
     // Show success message or redirect
-    alert('Room added to cart!');
+    // alert('Room added to cart!');
   };
 
   const handleBookNow = () => {
     if (!roomDetails || !checkIn || !checkOut) return;
+  
+    // Create cart item with all booking details
+    const cartItem = {
+      id: `booking-${Date.now()}`,
+      hotelName: roomDetails.hotelName,
+      location: roomDetails.hotelLocation,
+      roomType: roomDetails.type,
+      checkIn: checkIn,
+      checkOut: checkOut,
+      nights: calculateNights(),
+      adults: parseInt(adults),
+      children: parseInt(children),
+      rooms: parseInt(rooms),
+      pricePerNight: roomDetails.price,
+      totalPrice: calculateTotal(),
+      image: roomDetails.image,
+      // Additional details for checkout
+      hotelId: roomDetails.hotelId,
+      roomId: roomDetails.id,
+      amenities: roomDetails.amenities,
+      capacity: roomDetails.capacity
+    };
     
-    // Navigate to booking page with pre-filled data
-    const bookingUrl = `/booking?hotel=${roomDetails.hotelId}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&adults=${adults}&children=${children}&roomType=${roomDetails.id}`;
-    router.push(bookingUrl);
+    // Add to cart
+    addToCart(cartItem);
+    
+    // Navigate to cart page for checkout
+    router.push('/checkout');
   };
 
   if (hotelsLoading || isLoadingRoom) {

@@ -688,7 +688,9 @@ export default function BookingPage() {
                                 <h4 className="font-medium text-white">{room.type}</h4>
                                 <div className="text-right">
                                   <p className="text-lg font-medium text-white">${room.price}/night</p>
-                                  <p className="text-sm text-red-500">{room.available} available</p>
+                                  <p className={`text-sm ${room.available > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {room.available > 0 ? `${room.available} available` : 'Fully booked'}
+                                  </p>
                                 </div>
                               </div>
                               <p className="text-sm text-gray-200 mb-2">Capacity: {room.capacity}</p>
