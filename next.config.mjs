@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Remove the export output for VPS
+  // output: 'export', // Remove this line
   eslint: {
     ignoreDuringBuilds: true,
   },

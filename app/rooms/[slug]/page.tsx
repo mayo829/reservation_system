@@ -1,4 +1,4 @@
-// app/rooms/[slug]/page.tsx - Individual Room Type Page
+// app/rooms/[slug]/page.tsx - Enhanced with Full Gallery Modal
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, MapPin, Users, Star, CheckCircle, ArrowLeft, Bed, Bath, Wifi, Car, Coffee } from 'lucide-react';
+import { CalendarIcon, MapPin, Users, Star, CheckCircle, ArrowLeft, Bed, Bath, Wifi, Car, Coffee, X, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
@@ -42,6 +42,124 @@ interface RoomDetails {
   };
 }
 
+// Image Gallery Modal Component
+const ImageGalleryModal = ({ 
+  isOpen, 
+  onClose, 
+  images, 
+  initialIndex = 0, 
+  roomName 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  images: string[];
+  initialIndex?: number;
+  roomName: string;
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+      } else if (e.key === 'ArrowRight') {
+        setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, images.length, onClose]);
+
+  if (!isOpen) return null;
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  };
+
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center">
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-60 p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all"
+      >
+        <X className="w-6 h-6 text-white" />
+      </button>
+
+      {/* Image Counter */}
+      <div className="absolute top-4 left-4 z-60 bg-black bg-opacity-50 text-white px-3 py-1 rounded">
+        {currentIndex + 1} / {images.length}
+      </div>
+
+      {/* Navigation Arrows */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={prevImage}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-60 p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all"
+          >
+            <ChevronLeft className="w-8 h-8 text-white" />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-60 p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all"
+          >
+            <ChevronRight className="w-8 h-8 text-white" />
+          </button>
+        </>
+      )}
+
+      {/* Main Image */}
+      <div className="relative w-full h-full max-w-6xl max-h-[90vh] mx-4">
+        <Image
+          src={images[currentIndex]}
+          alt={`${roomName} - Image ${currentIndex + 1}`}
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
+
+      {/* Thumbnail Strip */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-60">
+          <div className="flex gap-2 bg-black bg-opacity-50 p-2 rounded-lg max-w-screen-md overflow-x-auto">
+            {images.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`relative w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${
+                  currentIndex === index ? 'border-white' : 'border-transparent hover:border-gray-300'
+                }`}
+              >
+                <Image
+                  src={image}
+                  alt={`Thumbnail ${index + 1}`}
+                  fill
+                  className="object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function RoomTypePage() {
   const params = useParams();
   const router = useRouter();
@@ -56,6 +174,7 @@ export default function RoomTypePage() {
   const [children, setChildren] = useState("0");
   const [rooms, setRooms] = useState("1");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
 
   const roomSlug = params.slug as string;
 
@@ -67,7 +186,7 @@ export default function RoomTypePage() {
       .replace(/^-+|-+$/g, '');
   };
 
-  // Find room by slug across all hotels
+  // Find room by slug across all hotels (using the fixed version from previous response)
   const findRoomBySlug = async () => {
     if (hotels.length === 0) return;
     
@@ -78,14 +197,49 @@ export default function RoomTypePage() {
       // Search through all hotels to find the room with matching slug
       for (const hotel of hotels) {
         if (hotel.associations?.room_types?.room_types) {
-          const roomTypeRefs = hotel.associations.room_types.room_types;
+          let roomTypeRefs = hotel.associations.room_types.room_types;
+          
+          // Handle different response structures - ensure we have an array
+          if (!Array.isArray(roomTypeRefs)) {
+            // If it's a single object, wrap it in an array
+            if (typeof roomTypeRefs === 'object' && roomTypeRefs !== null) {
+              roomTypeRefs = [roomTypeRefs];
+            } else {
+              console.log("Invalid room_types structure for hotel:", hotel.name, roomTypeRefs);
+              continue; // Skip this hotel
+            }
+          }
+          
+          console.log(`Processing ${roomTypeRefs.length} room types for hotel: ${hotel.name}`);
           
           for (const roomRef of roomTypeRefs) {
             try {
-              const roomTypeUrl = roomRef['@_xlink:href'];
+              // Handle different reference structures
+              let roomTypeUrl;
+              let roomId;
+              
+              if (roomRef['@_xlink:href']) {
+                roomTypeUrl = roomRef['@_xlink:href'];
+                roomId = roomRef.id || roomRef['@_id'] || 'unknown';
+              } else if (roomRef.href) {
+                roomTypeUrl = roomRef.href;
+                roomId = roomRef.id || 'unknown';
+              } else if (roomRef.url) {
+                roomTypeUrl = roomRef.url;
+                roomId = roomRef.id || 'unknown';
+              } else {
+                console.error("No valid URL found in room reference:", roomRef);
+                continue;
+              }
+              
+              console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
+              
               const response = await fetch(`${roomTypeUrl}?ws_key=${apiKey}`);
               
-              if (!response.ok) continue;
+              if (!response.ok) {
+                console.error(`Failed to fetch room type ${roomId}:`, response.status);
+                continue;
+              }
               
               const responseText = await response.text();
               
@@ -99,7 +253,10 @@ export default function RoomTypePage() {
               const roomData = parser.parse(responseText);
               const roomType = roomData.qloapps?.room_type;
               
-              if (!roomType) continue;
+              if (!roomType) {
+                console.warn(`No room type data found for ${roomId}`);
+                continue;
+              }
               
               // Helper function to extract text
               const extractText = (value: any) => {
@@ -121,8 +278,12 @@ export default function RoomTypePage() {
               const roomName = extractText(roomType.name);
               const generatedSlug = generateSlug(roomName);
               
+              console.log(`Checking room: "${roomName}" with slug: "${generatedSlug}" against target: "${roomSlug}"`);
+              
               // Check if this room matches our slug
               if (generatedSlug === roomSlug) {
+                console.log(`Found matching room: ${roomName}`);
+                
                 // Extract amenities and features
                 const amenities = ['Free WiFi', 'Air Conditioning', 'Room Service'];
                 if (roomType.associations?.room_type_features?.room_type_feature) {
@@ -133,18 +294,22 @@ export default function RoomTypePage() {
                   amenities.push('Mini Bar', 'Balcony', 'City View', 'Safe', 'Hairdryer');
                 }
                 
-                // Extract gallery images
+                // Extract ALL gallery images (not limited to 5)
                 const gallery = [];
-                if (roomType.associations?.images?.image) {
-                  const images = Array.isArray(roomType.associations.images.image) 
-                    ? roomType.associations.images.image 
-                    : [roomType.associations.images.image];
-                  
-                  for (const img of images.slice(0, 5)) { // Limit to 5 images
-                    if (img['@_xlink:href']) {
-                      gallery.push(`${img['@_xlink:href']}?ws_key=${apiKey}`);
+                try {
+                  if (roomType.associations?.images?.image) {
+                    const images = Array.isArray(roomType.associations.images.image) 
+                      ? roomType.associations.images.image 
+                      : [roomType.associations.images.image];
+                    
+                    for (const img of images) { // Get ALL images, not just first 5
+                      if (img && img['@_xlink:href']) {
+                        gallery.push(`${img['@_xlink:href']}?ws_key=${apiKey}`);
+                      }
                     }
                   }
+                } catch (imageError) {
+                  console.warn("Error processing images for room:", roomId, imageError);
                 }
                 
                 // If no gallery images, add placeholder
@@ -152,20 +317,36 @@ export default function RoomTypePage() {
                   gallery.push('/placeholder-room.jpg');
                 }
                 
+                console.log(`Found ${gallery.length} images for room: ${roomName}`);
+                
                 const mainImage = gallery[0];
                 const adults = parseInt(extractText(roomType.adults)) || 2;
                 const children = parseInt(extractText(roomType.children)) || 2;
                 
+                // Extract availability safely
+                let availableCount = 0;
+                try {
+                  if (roomType.associations?.hotel_rooms?.hotel_room) {
+                    const hotelRooms = Array.isArray(roomType.associations.hotel_rooms.hotel_room)
+                      ? roomType.associations.hotel_rooms.hotel_room
+                      : [roomType.associations.hotel_rooms.hotel_room];
+                    availableCount = hotelRooms.length;
+                  }
+                } catch (availabilityError) {
+                  console.warn("Error processing availability for room:", roomId, availabilityError);
+                  availableCount = 1; // Default to 1 if we can't determine
+                }
+                
                 setRoomDetails({
-                  id: roomType.id,
+                  id: roomType.id || roomId,
                   type: roomName,
                   slug: generatedSlug,
-                  price: parseFloat(roomType.price),
+                  price: parseFloat(roomType.price) || 100,
                   capacity: `${adults} Adults, ${children} Children`,
                   image: mainImage,
                   gallery: gallery,
                   amenities: amenities,
-                  available: roomType.associations?.hotel_rooms?.hotel_room?.length || 0,
+                  available: availableCount,
                   description: extractText(roomType.description_short) || extractText(roomType.description) || '',
                   longDescription: extractText(roomType.description) || 'Experience luxury and comfort in this beautifully appointed room with modern amenities, elegant furnishings, and stunning views. Perfect for both business and leisure travelers.',
                   hotelId: hotel.id,
@@ -184,11 +365,11 @@ export default function RoomTypePage() {
                 });
                 
                 setIsLoadingRoom(false);
-                return; // Found the room, exit
+                return; // Found the room, exit function
               }
               
             } catch (error) {
-              console.error(`Error fetching room type ${roomRef.id}:`, error);
+              console.error(`Error fetching room type ${roomRef.id || 'unknown'}:`, error);
               continue;
             }
           }
@@ -247,15 +428,11 @@ export default function RoomTypePage() {
     };
     
     addToCart(cartItem);
-    
-    // Show success message or redirect
-    // alert('Room added to cart!');
   };
 
   const handleBookNow = () => {
     if (!roomDetails || !checkIn || !checkOut) return;
   
-    // Create cart item with all booking details
     const cartItem = {
       id: `booking-${Date.now()}`,
       hotelName: roomDetails.hotelName,
@@ -270,17 +447,13 @@ export default function RoomTypePage() {
       pricePerNight: roomDetails.price,
       totalPrice: calculateTotal(),
       image: roomDetails.image,
-      // Additional details for checkout
       hotelId: roomDetails.hotelId,
       roomId: roomDetails.id,
       amenities: roomDetails.amenities,
       capacity: roomDetails.capacity
     };
     
-    // Add to cart
     addToCart(cartItem);
-    
-    // Navigate to cart page for checkout
     router.push('/checkout');
   };
 
@@ -325,6 +498,15 @@ export default function RoomTypePage() {
 
   return (
     <div className="min-h-screen bg-yellow-50/20 pt-16">
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        images={roomDetails.gallery}
+        initialIndex={selectedImageIndex}
+        roomName={roomDetails.type}
+      />
+
       {/* Breadcrumb */}
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -371,7 +553,7 @@ export default function RoomTypePage() {
             </div>
           </div>
 
-          {/* Image Gallery */}
+          {/* Enhanced Image Gallery */}
           <div className="grid lg:grid-cols-3 gap-4 mb-12">
             {/* Main Image */}
             <div className="lg:col-span-2">
@@ -380,12 +562,26 @@ export default function RoomTypePage() {
                   src={roomDetails.gallery[selectedImageIndex]}
                   alt={roomDetails.type}
                   fill
-                  className="object-cover"
+                  className="object-cover cursor-pointer"
+                  onClick={() => {
+                    setIsGalleryModalOpen(true);
+                  }}
                 />
+                
+                {/* View All Pictures Button Overlay */}
+                <div className="absolute bottom-4 right-4">
+                  <Button
+                    onClick={() => setIsGalleryModalOpen(true)}
+                    className="bg-black bg-opacity-60 hover:bg-opacity-80 text-white border-0"
+                  >
+                    <Images className="w-4 h-4 mr-2" />
+                    View All {roomDetails.gallery.length} Pictures
+                  </Button>
+                </div>
               </div>
             </div>
             
-            {/* Thumbnail Gallery */}
+            {/* Thumbnail Gallery - Show first 4 */}
             <div className="space-y-2">
               {roomDetails.gallery.slice(0, 4).map((image, index) => (
                 <div 
@@ -393,7 +589,10 @@ export default function RoomTypePage() {
                   className={`relative h-24 lg:h-[120px] rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
                     selectedImageIndex === index ? 'border-cyan-400' : 'border-transparent hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedImageIndex(index)}
+                  onClick={() => {
+                    setSelectedImageIndex(index);
+                    setIsGalleryModalOpen(true);
+                  }}
                 >
                   <Image
                     src={image}
@@ -401,11 +600,33 @@ export default function RoomTypePage() {
                     fill
                     className="object-cover"
                   />
+                  
+                  {/* Show "+X more" on the last thumbnail if there are more images */}
+                  {index === 3 && roomDetails.gallery.length > 4 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                      <span className="text-white font-medium">
+                        +{roomDetails.gallery.length - 4} more
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
+              
+              {/* View All Pictures Button if more than 4 images */}
+              {roomDetails.gallery.length > 4 && (
+                <Button
+                  onClick={() => setIsGalleryModalOpen(true)}
+                  variant="outline"
+                  className="w-full mt-2"
+                >
+                  <Images className="w-4 h-4 mr-2" />
+                  View All {roomDetails.gallery.length} Pictures
+                </Button>
+              )}
             </div>
           </div>
 
+          {/* Rest of the component remains the same... */}
           {/* Content Grid */}
           <div className="grid lg:grid-cols-3 gap-12">
             {/* Room Details */}

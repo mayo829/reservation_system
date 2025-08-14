@@ -38,7 +38,8 @@ export default function RoomsPage() {
   };
 
   // Fetch room types for all hotels
-  const fetchAllRoomTypes = async () => {
+  // Fetch room types for all hotels - FIXED VERSION
+const fetchAllRoomTypes = async () => {
     if (hotels.length === 0) return;
     
     setIsLoadingRooms(true);
@@ -50,15 +51,47 @@ export default function RoomsPage() {
       
       for (const hotel of hotels) {
         if (hotel.associations?.room_types?.room_types) {
-          const roomTypeRefs = hotel.associations.room_types.room_types;
+          let roomTypeRefs = hotel.associations.room_types.room_types;
+          
+          // Handle different response structures - ensure we have an array
+          if (!Array.isArray(roomTypeRefs)) {
+            // If it's a single object, wrap it in an array
+            if (typeof roomTypeRefs === 'object' && roomTypeRefs !== null) {
+              roomTypeRefs = [roomTypeRefs];
+            } else {
+              console.log("Invalid room_types structure for hotel:", hotel.name, roomTypeRefs);
+              continue; // Skip this hotel
+            }
+          }
+          
+          console.log(`Processing ${roomTypeRefs.length} room types for hotel: ${hotel.name}`);
           
           const roomPromises = roomTypeRefs.map(async (roomRef: any) => {
             try {
-              const roomTypeUrl = roomRef['@_xlink:href'];
+              // Handle different reference structures
+              let roomTypeUrl;
+              let roomId;
+              
+              if (roomRef['@_xlink:href']) {
+                roomTypeUrl = roomRef['@_xlink:href'];
+                roomId = roomRef.id || roomRef['@_id'] || 'unknown';
+              } else if (roomRef.href) {
+                roomTypeUrl = roomRef.href;
+                roomId = roomRef.id || 'unknown';
+              } else if (roomRef.url) {
+                roomTypeUrl = roomRef.url;
+                roomId = roomRef.id || 'unknown';
+              } else {
+                console.error("No valid URL found in room reference:", roomRef);
+                return null;
+              }
+              
+              console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
+              
               const response = await fetch(`${roomTypeUrl}?ws_key=${apiKey}`);
               
               if (!response.ok) {
-                console.error(`Failed to fetch room type ${roomRef.id}:`, response.status);
+                console.error(`Failed to fetch room type ${roomId}:`, response.status);
                 return null;
               }
               
@@ -74,7 +107,10 @@ export default function RoomsPage() {
               const roomData = parser.parse(responseText);
               const roomType = roomData.qloapps?.room_type;
               
-              if (!roomType) return null;
+              if (!roomType) {
+                console.warn(`No room type data found for ${roomId}`);
+                return null;
+              }
               
               // Helper function to extract text
               const extractText = (value: any) => {
@@ -105,25 +141,55 @@ export default function RoomsPage() {
                 }
               }
               
-              const imageUrl = roomType.associations?.images?.image?.[0]?.['@_xlink:href'];
+              // Extract image URL safely
+              let imageUrl = "/placeholder-room.jpg";
+              try {
+                if (roomType.associations?.images?.image) {
+                  const images = Array.isArray(roomType.associations.images.image)
+                    ? roomType.associations.images.image
+                    : [roomType.associations.images.image];
+                  
+                  if (images[0] && images[0]['@_xlink:href']) {
+                    imageUrl = `${images[0]['@_xlink:href']}?ws_key=${apiKey}`;
+                  }
+                }
+              } catch (imageError) {
+                console.warn("Error processing image for room:", roomId, imageError);
+              }
+              
               const roomName = extractText(roomType.name);
               const roomSlug = generateSlug(roomName);
               
               // Skip if we've already seen this room type (avoid duplicates)
               if (seenSlugs.has(roomSlug)) {
+                console.log(`Skipping duplicate room type: ${roomName} (${roomSlug})`);
                 return null;
               }
               seenSlugs.add(roomSlug);
               
+              // Extract availability safely
+              let availableCount = 0;
+              try {
+                if (roomType.associations?.hotel_rooms?.hotel_room) {
+                  const hotelRooms = Array.isArray(roomType.associations.hotel_rooms.hotel_room)
+                    ? roomType.associations.hotel_rooms.hotel_room
+                    : [roomType.associations.hotel_rooms.hotel_room];
+                  availableCount = hotelRooms.length;
+                }
+              } catch (availabilityError) {
+                console.warn("Error processing availability for room:", roomId, availabilityError);
+                availableCount = 1; // Default to 1 if we can't determine
+              }
+              
               return {
-                id: roomType.id,
+                id: roomType.id || roomId,
                 type: roomName,
                 slug: roomSlug,
-                price: parseFloat(roomType.price),
+                price: parseFloat(roomType.price) || 100,
                 capacity: `${parseInt(extractText(roomType.adults)) || 2} Adults, ${parseInt(extractText(roomType.children)) || 2} Children`,
-                image: imageUrl ? `${imageUrl}?ws_key=${apiKey}` : "/placeholder-room.jpg",
+                image: imageUrl,
                 amenities: amenities,
-                available: roomType.associations?.hotel_rooms?.hotel_room?.length || 0,
+                available: availableCount,
                 description: extractText(roomType.description_short) || extractText(roomType.description) || '',
                 hotelId: hotel.id,
                 hotelName: hotel.name,
@@ -131,7 +197,7 @@ export default function RoomsPage() {
               };
               
             } catch (error) {
-              console.error(`Error fetching room type ${roomRef.id}:`, error);
+              console.error(`Error fetching room type ${roomRef.id || 'unknown'}:`, error);
               return null;
             }
           });
@@ -142,6 +208,7 @@ export default function RoomsPage() {
         }
       }
       
+      console.log(`Successfully processed ${allRooms.length} unique room types`);
       setAllRoomTypes(allRooms);
     } catch (error) {
       console.error('Error fetching room types:', error);

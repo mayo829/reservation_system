@@ -75,18 +75,18 @@ export default function Navigation() {
                 About
               </Link>
               <Link
-                href="/gallery"
-                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Gallery
-              </Link>
-              <Link
                 href="/booking"
                 className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Booking
+              </Link>
+              <Link
+                href="/rooms"
+                className="px-6 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                View Rooms
               </Link>
               <Link
                 href="/contact"

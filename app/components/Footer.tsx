@@ -17,11 +17,11 @@ export default function Footer() {
               <Link href="/about" className="block text-gray-400 hover:text-white transition-colors">
                 About Us
               </Link>
-              <Link href="/gallery" className="block text-gray-400 hover:text-white transition-colors">
-                Gallery
-              </Link>
               <Link href="/booking" className="block text-gray-400 hover:text-white transition-colors">
                 Booking
+              </Link>
+              <Link href="/rooms" className="block text-gray-400 hover:text-white transition-colors">
+                View Our Rooms
               </Link>
               <Link href="/contact" className="block text-gray-400 hover:text-white transition-colors">
                 Contact

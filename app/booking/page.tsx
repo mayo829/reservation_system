@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useCart } from "../context/CartContext"
 import { useHotels } from "../context/HotelsContext"
@@ -16,7 +16,8 @@ import { CalendarIcon, MapPin, Star, Wifi, Car, Coffee, Waves, CheckCircle, Mail
 import { format } from "date-fns"
 import Image from "next/image"
 
-export default function BookingPage() {
+// Separate component that uses useSearchParams
+function BookingForm() {
   const [selectedHotel, setSelectedHotel] = useState("")
   const [checkIn, setCheckIn] = useState<Date>()
   const [checkOut, setCheckOut] = useState<Date>()
@@ -89,107 +90,69 @@ export default function BookingPage() {
     return 0
   }
 
-  // async function updateRoomTypeAvailability(roomTypeId, availableQuantity) {
-  //   const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
-  //   const apiUrl = 'http://localhost/qloapps/api'
-  
-  //   try {
-  //     // Step 1: Get the current room type data
-  //     const getUrl = `${apiUrl}/room_types/${roomTypeId}?ws_key=${apiKey}`
-  //     const getResponse = await fetch(getUrl)
-  //     const currentXmlData = await getResponse.text()
-      
-  //     console.log('Current room data:', currentXmlData.substring(0, 200))
-  
-  //     if (!getResponse.ok) {
-  //       throw new Error('Failed to get current room data')
-  //     }
-  
-  //     // Step 2: Parse the XML and update only the quantity field
-  //     const { XMLParser, XMLBuilder } = await import('fast-xml-parser')
-      
-  //     const parser = new XMLParser({
-  //       ignoreAttributes: false,
-  //       attributeNamePrefix: "@_"
-  //     })
-      
-  //     const roomData = parser.parse(currentXmlData)
-      
-  //     // Update the minimal_quantity field
-  //     if (roomData.qloapps?.room_type) {
-  //       roomData.qloapps.room_type.minimal_quantity = availableQuantity
-  //     }
-  
-  //     // Step 3: Convert back to XML
-  //     const builder = new XMLBuilder({
-  //       ignoreAttributes: false,
-  //       attributeNamePrefix: "@_"
-  //     })
-      
-  //     const updatedXml = builder.build(roomData)
-  //     console.log('Updated XML:', updatedXml.substring(0, 200))
-  
-  //     // Step 4: Send the update with ps_method=PUT
-  //     const updateUrl = `${apiUrl}/room_types/${roomTypeId}?ws_key=${apiKey}&ps_method=PUT`
-      
-  //     const response = await fetch(updateUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/xml',
-  //       },
-  //       body: updatedXml
-  //     })
-  
-  //     const responseText = await response.text()
-  //     console.log('Update response:', responseText)
-  
-  //     if (response.ok) {
-  //       console.log(`Room type ${roomTypeId} availability updated to ${availableQuantity}`)
-  //       return true
-  //     } else {
-  //       console.error('Failed to update room type:', response.status)
-  //       console.error('Error details:', responseText)
-  //       return false
-  //     }
-  
-  //   } catch (error) {
-  //     console.error('Error updating room type availability:', error)
-  //     return false
-  //   }
-  // }
-
   const handleCheckAvailability = async () => {
     if (!selectedHotel || !checkIn || !checkOut) return
     
     const currentHotelData = hotels.find((hotel) => Number(hotel.id) === Number(selectedHotel))
     console.log("selectedHotelData in function:", currentHotelData)
-
+  
     if (!currentHotelData) return
-
+  
     setIsCheckingAvailability(true)
-
+  
     try {
       // Extract room type references from the hotel data
       let rooms = []
       
       if (currentHotelData.associations?.room_types?.room_types) {
-        const roomTypeRefs = currentHotelData.associations.room_types.room_types
+        let roomTypeRefs = currentHotelData.associations.room_types.room_types
+        
+        // Handle different response structures - ensure we have an array
+        if (!Array.isArray(roomTypeRefs)) {
+          // If it's a single object, wrap it in an array
+          if (typeof roomTypeRefs === 'object' && roomTypeRefs !== null) {
+            roomTypeRefs = [roomTypeRefs]
+          } else {
+            console.log("Invalid room_types structure:", roomTypeRefs)
+            roomTypeRefs = []
+          }
+        }
+        
+        console.log("Processing room type refs:", roomTypeRefs)
         
         // Fetch details for each room type
         const roomPromises = roomTypeRefs.map(async (roomRef) => {
           try {
-            const roomTypeUrl = roomRef['@_xlink:href']
+            // Handle different reference structures
+            let roomTypeUrl
+            let roomId
+            
+            if (roomRef['@_xlink:href']) {
+              roomTypeUrl = roomRef['@_xlink:href']
+              roomId = roomRef.id || roomRef['@_id'] || 'unknown'
+            } else if (roomRef.href) {
+              roomTypeUrl = roomRef.href
+              roomId = roomRef.id || 'unknown'
+            } else if (roomRef.url) {
+              roomTypeUrl = roomRef.url
+              roomId = roomRef.id || 'unknown'
+            } else {
+              console.error("No valid URL found in room reference:", roomRef)
+              return null
+            }
+            
             const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
             
             console.log(`Fetching room type from: ${roomTypeUrl}?ws_key=${apiKey}`)
             
             const response = await fetch(`${roomTypeUrl}?ws_key=${apiKey}`)
             if (!response.ok) {
-              console.error(`Failed to fetch room type ${roomRef.id}:`, response.status)
+              console.error(`Failed to fetch room type ${roomId}:`, response.status)
               return null
             }
             
             const responseText = await response.text()
+            console.log(`Room type ${roomId} response:`, responseText.substring(0, 200) + "...")
             
             // Parse XML response
             const { XMLParser } = await import('fast-xml-parser')
@@ -202,7 +165,7 @@ export default function BookingPage() {
             const roomType = roomData.qloapps?.room_type
             
             if (!roomType) {
-              console.error(`No room type data found for ${roomRef.id}`)
+              console.error(`No room type data found for ${roomId}`)
               return null
             }
             
@@ -236,21 +199,48 @@ export default function BookingPage() {
               }
             }
             
-            // console.log("type:", roomType.associations.images.image[0]['@_xlink:href'])
-            const imageUrl = roomType.associations.images.image[0]['@_xlink:href']
+            // Handle image URL safely
+            let imageUrl = "/placeholder-room.jpg"
+            try {
+              if (roomType.associations?.images?.image) {
+                const images = Array.isArray(roomType.associations.images.image)
+                  ? roomType.associations.images.image
+                  : [roomType.associations.images.image]
+                
+                if (images[0] && images[0]['@_xlink:href']) {
+                  imageUrl = `${images[0]['@_xlink:href']}?ws_key=${apiKey}`
+                }
+              }
+            } catch (imageError) {
+              console.warn("Error processing image for room:", roomId, imageError)
+            }
+            
+            // Handle room availability safely
+            let availableCount = 1
+            try {
+              if (roomType.associations?.hotel_rooms?.hotel_room) {
+                const hotelRooms = Array.isArray(roomType.associations.hotel_rooms.hotel_room)
+                  ? roomType.associations.hotel_rooms.hotel_room
+                  : [roomType.associations.hotel_rooms.hotel_room]
+                availableCount = hotelRooms.length
+              }
+            } catch (availabilityError) {
+              console.warn("Error processing availability for room:", roomId, availabilityError)
+            }
+            
             return {
-              id: roomType.id,
-              type: extractText(roomType.name),
-              price: parseFloat(roomType.price),
+              id: roomType.id || roomId,
+              type: extractText(roomType.name) || `Room Type ${roomId}`,
+              price: parseFloat(roomType.price) || currentHotelData.price || 100,
               capacity: `${parseInt(extractText(roomType.adults)) || 2} Adults, ${parseInt(extractText(roomType.children)) || 2} Children`,
-              image: imageUrl ? `${imageUrl}?ws_key=${apiKey}` : "/placeholder-room.jpg",
+              image: imageUrl,
               amenities: amenities,
-              available: roomType.associations.hotel_rooms.hotel_room.length,
-              description: extractText(roomType.description_short) || extractText(roomType.description) || ''
+              available: availableCount,
+              description: extractText(roomType.description_short) || extractText(roomType.description) || 'Comfortable room with modern amenities'
             }
             
           } catch (error) {
-            console.error(`Error fetching room type ${roomRef.id}:`, error)
+            console.error(`Error fetching room type ${roomRef.id || 'unknown'}:`, error)
             return null
           }
         })
@@ -259,9 +249,10 @@ export default function BookingPage() {
         const roomResults = await Promise.all(roomPromises)
         rooms = roomResults.filter(room => room !== null)
       }
-
+  
       // Fallback to mock rooms if no room types found or all failed
       if (rooms.length === 0) {
+        console.log("No rooms found from API, using fallback rooms")
         rooms = [
           {
             id: 1,
@@ -270,10 +261,22 @@ export default function BookingPage() {
             capacity: "2 Adults, 2 Children",
             amenities: ["King Bed", "City View", "Mini Bar", "Free WiFi"],
             available: 3,
+            image: "/placeholder-room.jpg",
+            description: "Luxurious suite with stunning city views and premium amenities"
+          },
+          {
+            id: 2,
+            type: "Standard Room",
+            price: (currentHotelData.price || 400) * 0.7,
+            capacity: "2 Adults, 1 Child",
+            amenities: ["Queen Bed", "Free WiFi", "Air Conditioning"],
+            available: 5,
+            image: "/placeholder-room.jpg",
+            description: "Comfortable standard room with essential amenities"
           }
         ]
       }
-
+  
       console.log("Processed rooms:", rooms)
       setAvailableRooms(rooms)
       
@@ -289,6 +292,8 @@ export default function BookingPage() {
           capacity: "2 Adults, 2 Children",
           amenities: ["Free WiFi", "Air Conditioning"],
           available: 3,
+          image: "/placeholder-room.jpg",
+          description: "Comfortable room with modern amenities"
         }
       ])
     } finally {
@@ -708,7 +713,6 @@ export default function BookingPage() {
                                   onClick={() => {
                                     setSelectedRoom(room)
                                     console.log('Selected room:', room.id, 'Price:', room.price, 'Image: ', room.image)
-                                    // updateRoomTypeAvailability(room.id, room.capacity - 1)
                                   }}
                                 >
                                   Select This Room
@@ -764,10 +768,6 @@ export default function BookingPage() {
                           </div>
                         ))}
                       </div>
-                      {/* <p className="text-2xl font-medium text-gray-900">
-                        ${selectedHotelData.price}
-                        <span className="text-sm font-normal text-gray-600">/night</span>
-                      </p> */}
                     </div>
                   </CardContent>
                 </Card>
@@ -843,5 +843,26 @@ export default function BookingPage() {
         </div>
       </section>
     </div>
+  )
+}
+
+// Loading fallback
+function BookingLoading() {
+  return (
+    <div className="min-h-screen bg-yellow-50/20 pt-16 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+        <p className="text-lg text-gray-600">Loading booking details...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense
+export default function BookingPage() {
+  return (
+    <Suspense fallback={<BookingLoading />}>
+      <BookingForm />
+    </Suspense>
   )
 }
