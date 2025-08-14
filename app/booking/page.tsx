@@ -580,55 +580,52 @@ export default function BookingPage() {
                     </Select>
                   </div>
 
-                  {/* Date Selection */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Check-in Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal bg-transparent"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkIn ? format(checkIn, "PPP") : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
+                  {/* Date Range Selection */}
+                  <div className="xl:col-span-2 space-y-2 w-full min-w-0">
+                    <Label className="text-sm font-medium text-gray-700">Stay Dates</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-12 w-full min-w-0 justify-start text-left font-normal bg-transparent px-3"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                          <span className="text-sm truncate">
+                            {checkIn && checkOut 
+                              ? `${format(checkIn, "MMM dd")} - ${format(checkOut, "MMM dd")}`
+                              : "Select dates"}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <div className="w-[300px] h-[300px]">
                           <Calendar 
-                            mode="single" 
-                            selected={checkIn} 
-                            onSelect={setCheckIn} 
+                            mode="range" 
+                            selected={{ from: checkIn, to: checkOut }}
+                            onSelect={(range) => {
+                              setCheckIn(range?.from);
+                              setCheckOut(range?.to);
+                            }}
                             initialFocus
                             disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            numberOfMonths={1}
+                            modifiers={{
+                              selected: (date) => {
+                                if (!checkIn || !checkOut) return false;
+                                return date >= checkIn && date <= checkOut;
+                              },
+                            }}
+                            modifiersStyles={{
+                              selected: {
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                              }
+                            }}
+                            fixedWeeks
                           />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Check-out Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal bg-transparent"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkOut ? format(checkOut, "PPP") : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar 
-                            mode="single" 
-                            selected={checkOut} 
-                            onSelect={setCheckOut} 
-                            initialFocus
-                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Adults and Children */}
@@ -702,17 +699,30 @@ export default function BookingPage() {
                                   </span>
                                 ))}
                               </div>
-                              <Button
-                                size="sm"
-                                className="w-full bg-cyan-400 hover:bg-cyan-500 text-white rounded-full"
-                                onClick={() => {
-                                  setSelectedRoom(room)
-                                  console.log('Selected room:', room.id, 'Price:', room.price, 'Image: ', room.image)
-                                  // updateRoomTypeAvailability(room.id, room.capacity - 1)
-                                }}
-                              >
-                                Select This Room
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-cyan-400 hover:bg-cyan-500 text-white rounded-full"
+                                  onClick={() => {
+                                    setSelectedRoom(room)
+                                    console.log('Selected room:', room.id, 'Price:', room.price, 'Image: ', room.image)
+                                    // updateRoomTypeAvailability(room.id, room.capacity - 1)
+                                  }}
+                                >
+                                  Select This Room
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 white hover:white text-cyan-400 rounded-full"
+                                  onClick={() => {
+                                    const roomSlug = room.type.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                                    window.open(`/rooms/${roomSlug}?hotelId=${selectedHotelData.id}&roomId=${room.id}`, '_blank');
+                                  }}
+                                >
+                                  View Room
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
