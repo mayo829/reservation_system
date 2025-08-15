@@ -453,7 +453,7 @@ export default function RoomPageClient() {
     addToCart(cartItem);
     
     // Navigate to cart page for checkout
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   if (hotelsLoading || isLoadingRoom) {
