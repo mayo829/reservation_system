@@ -7,7 +7,8 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "generate-rooms": "npx tsx scripts/generate_room_pages.ts"
+    "generate-rooms": "npx tsx scripts/generate_room_pages.ts",
+    "export": "next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
