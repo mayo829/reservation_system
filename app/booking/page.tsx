@@ -679,7 +679,7 @@ function BookingForm() {
                           <CardContent className="p-0 relative">
                             {/* Background Image */}
                             <div 
-                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
                               style={{
                                 backgroundImage: `url(${room.image})`,
                               }}

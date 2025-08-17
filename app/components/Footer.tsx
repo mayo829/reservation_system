@@ -32,10 +32,8 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-medium mb-4">Locations</h4>
             <div className="space-y-2 text-gray-400">
-              <p>Manhattan, New York</p>
-              <p>Malibu, California</p>
-              <p>Aspen, Colorado</p>
-              <p>Miami Beach, Florida</p>
+              <p>Anchorage, Alaska</p>
+              <p>Lisboa, Portugal</p>
             </div>
           </div>
 
@@ -52,7 +50,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2 text-gray-400">
                 <MapPin className="w-4 h-4" />
-                <span>New York, NY</span>
+                <span>Lisboa, Portugal</span>
               </div>
             </div>
           </div>
