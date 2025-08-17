@@ -43,7 +43,7 @@ export default function BookingBar() {
         <div className="grid grid-cols-1 xl:grid-cols-6 gap-4 items-end w-full min-w-full">
           {/* Hotel Selection - Takes more space */}
           <div className="xl:col-span-2 space-y-2 w-full min-w-0">
-            <Label className="text-sm font-medium text-gray-700">Hotel Location</Label>
+            <Label className="text-sm font-medium text-gray-700">Location</Label>
             <Select value={selectedHotel} onValueChange={setSelectedHotel} disabled={isLoading}>
               <SelectTrigger className="h-12 w-full min-w-0">
                 <SelectValue placeholder={isLoading ? "Loading hotels..." : "Choose location"} />
@@ -66,7 +66,7 @@ export default function BookingBar() {
 
           {/* Date Range Selection */}
           <div className="xl:col-span-2 space-y-2 w-full min-w-0">
-            <Label className="text-sm font-medium text-gray-700">Stay Dates</Label>
+            <Label className="text-sm font-medium text-gray-700">Dates</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
