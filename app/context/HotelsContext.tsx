@@ -31,8 +31,8 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchHotels = async () => {
-    const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
-    const apiUrl = 'http://localhost/qloapps/api'
+    const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
+    const apiUrl = process.env.NEXT_PUBLIC_QLOAPPS_API_URL
 
     try {
       setIsLoading(true)

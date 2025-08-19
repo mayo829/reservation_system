@@ -191,7 +191,7 @@ export default function RoomPageClient() {
     if (hotels.length === 0) return;
     
     setIsLoadingRoom(true);
-    const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD';
+    const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY;
     
     try {
       // Search through all hotels to find the room with matching slug

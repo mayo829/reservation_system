@@ -141,7 +141,7 @@ function BookingForm() {
               return null
             }
             
-            const apiKey = 'BPLZZ875W56IHUSI2CZF21X4UXM2SCGD'
+            const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
             
             console.log(`Fetching room type from: ${roomTypeUrl}?ws_key=${apiKey}`)
             
