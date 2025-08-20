@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // Removed 'output: export' for dynamic generation
   trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,

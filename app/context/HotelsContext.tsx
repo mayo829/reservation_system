@@ -30,6 +30,54 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper function to extract text from language objects
+  const extractLanguageText = (languageObj: any, defaultText = ''): string => {
+    if (!languageObj) return defaultText;
+    
+    // If it's already a string, return it
+    if (typeof languageObj === 'string') return languageObj;
+    
+    // If it has a language array, get the first one or find English
+    if (languageObj.language && Array.isArray(languageObj.language)) {
+      const languages = languageObj.language;
+      
+      // Try to find English first (ID 1 is usually English)
+      const englishLang = languages.find(lang => 
+        lang['@_id'] === '1' || lang['@_id'] === 1
+      );
+      if (englishLang && englishLang['#text']) {
+        return englishLang['#text'];
+      }
+      
+      // Fall back to first language with text
+      const firstLang = languages.find(lang => lang['#text']);
+      if (firstLang && firstLang['#text']) {
+        return firstLang['#text'];
+      }
+    }
+    
+    // If it's a single language object
+    if (languageObj['#text']) {
+      return languageObj['#text'];
+    }
+    
+    return defaultText;
+  };
+
+  // Helper function to safely extract text from nested objects (fallback)
+  const extractText = (value: any, defaultText = '') => {
+    if (typeof value === 'string') return value
+    if (value && typeof value === 'object') {
+      if (value.language && typeof value.language === 'string') return value.language
+      if (value.language && value.language['#text']) return value.language['#text']
+      if (value['#text']) return value['#text']
+      if (value.text) return value.text
+      if (value.id) return value.id
+      return defaultText
+    }
+    return defaultText
+  }
+
   const fetchHotels = async () => {
     const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
     const apiUrl = process.env.NEXT_PUBLIC_QLOAPPS_API_URL
@@ -87,36 +135,25 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
               return null
             }
 
-            // Helper function to safely extract text from nested objects
-            const extractText = (value: any) => {
-              if (typeof value === 'string') return value
-              if (value && typeof value === 'object') {
-                if (value.language && typeof value.language === 'string') return value.language
-                if (value.language && value.language['#text']) return value.language['#text']
-                if (value['#text']) return value['#text']
-                if (value.text) return value.text
-                if (value.id) return value.id
-                return ''
-              }
-              return ''
-            }
-
-            console.log(`Hotel ${extractText(hotel.hotel_name)} details:`, hotel)
-
+            // Extract hotel name and other details using the language-aware function
+            const hotelName = extractLanguageText(hotel.hotel_name, `Hotel ${hotelId}`)
+            const hotelDescription = extractLanguageText(hotel.description, 'Hotel description')
+            const hotelShortDescription = extractLanguageText(hotel.short_description, '')
+            
+            console.log(`Hotel ${hotelName} details:`, hotel)
 
             return {
-              id: hotel.id,
-              name: extractText(hotel.hotel_name) || 'Hotel',
-              location: extractText(hotel.city) || 'Location',
+              id: hotel.id.toString(),
+              name: hotelName,
+              location: `${hotel.city || 'Unknown City'}${hotel.address ? `, ${hotel.address}` : ''}`,
               price: parseFloat(hotel.price) || 0,
               image: hotel.id_default_image ? `${apiUrl}/images/hotels/${hotel.id}/${hotel.id_default_image?.['#text']}?ws_key=${apiKey}` : "/placeholder.svg?height=200&width=300",
-              // amenities: hotel.associations.hotel_features.hotel_feature,
               amenities: [],
               associations: hotel.associations,
-              description: extractText(hotel.short_description) || 'Hotel description',
-              address: extractText(hotel.address) || '',
-              city: extractText(hotel.city) || '',
-              country: extractText(hotel.country) || ''
+              description: hotelShortDescription || hotelDescription,
+              address: hotel.address || '',
+              city: hotel.city || '',
+              country: extractText(hotel.country, '')
             }
           } catch (error) {
             console.error(`Error fetching hotel ${hotelRef['@_id']}:`, error)
@@ -127,7 +164,7 @@ export function HotelsProvider({ children }: { children: ReactNode }) {
 
       // Filter out any null results (failed fetches)
       const validHotels = mappedHotels.filter((hotel): hotel is Hotel => hotel !== null)
-      console.log(`Successfully mapped ${validHotels.length} hotels`)
+      console.log(`Successfully mapped ${validHotels.length} hotels:`, validHotels.map(h => h.name))
       
       setHotels(validHotels)
     } catch (error) {

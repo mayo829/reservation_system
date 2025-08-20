@@ -37,9 +37,59 @@ export default function RoomsPage() {
       .replace(/^-+|-+$/g, '');
   };
 
-  // Fetch room types for all hotels
+  // Helper function to extract text from language objects (same as HotelsContext)
+  const extractLanguageText = (languageObj: any, defaultText = ''): string => {
+    if (!languageObj) return defaultText;
+    
+    // If it's already a string, return it
+    if (typeof languageObj === 'string') return languageObj;
+    
+    // If it has a language array, get the first one or find English
+    if (languageObj.language && Array.isArray(languageObj.language)) {
+      const languages = languageObj.language;
+      
+      // Try to find English first (ID 1 is usually English)
+      const englishLang = languages.find(lang => 
+        lang['@_id'] === '1' || lang['@_id'] === 1
+      );
+      if (englishLang && englishLang['#text']) {
+        return englishLang['#text'];
+      }
+      
+      // Fall back to first language with text
+      const firstLang = languages.find(lang => lang['#text']);
+      if (firstLang && firstLang['#text']) {
+        return firstLang['#text'];
+      }
+    }
+    
+    // If it's a single language object
+    if (languageObj['#text']) {
+      return languageObj['#text'];
+    }
+    
+    return defaultText;
+  };
+
+  // Helper function to safely extract text from nested objects (fallback)
+  const extractText = (value: any, defaultText = '') => {
+    if (typeof value === 'string') return value.trim();
+    if (value && typeof value === 'object') {
+      if (value['#text']) {
+        const text = value['#text'];
+        return typeof text === 'string' ? text.trim() : String(text).trim();
+      }
+      if (value.language && value.language['#text']) {
+        const text = value.language['#text'];
+        return typeof text === 'string' ? text.trim() : String(text).trim();
+      }
+      return String(value).trim();
+    }
+    return defaultText;
+  };
+
   // Fetch room types for all hotels - FIXED VERSION
-const fetchAllRoomTypes = async () => {
+  const fetchAllRoomTypes = async () => {
     if (hotels.length === 0) return;
     
     setIsLoadingRooms(true);
@@ -49,7 +99,11 @@ const fetchAllRoomTypes = async () => {
       const allRooms: RoomType[] = [];
       const seenSlugs = new Set<string>(); // To avoid duplicate room types
       
+      console.log(`=== FETCHING ALL ROOM TYPES FROM ${hotels.length} HOTELS ===`);
+      
       for (const hotel of hotels) {
+        console.log(`\n--- Processing hotel: ${hotel.name} (ID: ${hotel.id}) ---`);
+        
         if (hotel.associations?.room_types?.room_types) {
           let roomTypeRefs = hotel.associations.room_types.room_types;
           
@@ -64,10 +118,12 @@ const fetchAllRoomTypes = async () => {
             }
           }
           
-          console.log(`Processing ${roomTypeRefs.length} room types for hotel: ${hotel.name}`);
+          console.log(`Found ${roomTypeRefs.length} room type references for hotel: ${hotel.name}`);
           
-          const roomPromises = roomTypeRefs.map(async (roomRef: any) => {
+          const roomPromises = roomTypeRefs.map(async (roomRef: any, index: number) => {
             try {
+              console.log(`\n  Processing room reference ${index + 1}/${roomTypeRefs.length}:`, roomRef);
+              
               // Handle different reference structures
               let roomTypeUrl;
               let roomId;
@@ -82,27 +138,26 @@ const fetchAllRoomTypes = async () => {
                 roomTypeUrl = roomRef.url;
                 roomId = roomRef.id || 'unknown';
               } else {
-                console.error("No valid URL found in room reference:", roomRef);
+                console.error("  ❌ No valid URL found in room reference:", roomRef);
                 return null;
               }
 
               if (roomTypeUrl.startsWith('http://')) {
                 roomTypeUrl = roomTypeUrl.replace('http://', 'https://');
-                console.log(`Replaced ${roomId} to: ${roomTypeUrl}`);
-              } else {
-                console.log(`DID NOT Replaced ${roomId} to: ${roomTypeUrl}`);
+                console.log(`  🔄 Replaced HTTP with HTTPS for room ${roomId}`);
               }
               
-              console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
+              console.log(`  📡 Fetching room type ${roomId} from: ${roomTypeUrl}`);
               
               const response = await fetch(`${roomTypeUrl}?ws_key=${apiKey}`);
               
               if (!response.ok) {
-                console.error(`Failed to fetch room type ${roomId}:`, response.status);
+                console.error(`  ❌ Failed to fetch room type ${roomId}:`, response.status, response.statusText);
                 return null;
               }
               
               const responseText = await response.text();
+              console.log(`  ✅ Successfully fetched room ${roomId} (${responseText.length} chars)`);
               
               // Parse XML response
               const { XMLParser } = await import('fast-xml-parser');
@@ -115,26 +170,9 @@ const fetchAllRoomTypes = async () => {
               const roomType = roomData.qloapps?.room_type;
               
               if (!roomType) {
-                console.warn(`No room type data found for ${roomId}`);
+                console.warn(`  ⚠️  No room type data found for ${roomId}`);
                 return null;
               }
-              
-              // Helper function to extract text
-              const extractText = (value: any) => {
-                if (typeof value === 'string') return value.trim();
-                if (value && typeof value === 'object') {
-                  if (value['#text']) {
-                    const text = value['#text'];
-                    return typeof text === 'string' ? text.trim() : String(text).trim();
-                  }
-                  if (value.language && value.language['#text']) {
-                    const text = value.language['#text'];
-                    return typeof text === 'string' ? text.trim() : String(text).trim();
-                  }
-                  return String(value).trim();
-                }
-                return '';
-              };
               
               // Extract amenities
               const amenities = ['Free WiFi', 'Air Conditioning'];
@@ -149,7 +187,7 @@ const fetchAllRoomTypes = async () => {
               }
               
               // Extract image URL safely
-              let imageUrl = "/placeholder-room.jpg";
+              let imageUrl = "/placeholder.svg?height=200&width=300"; // Fixed placeholder path
               try {
                 if (roomType.associations?.images?.image) {
                   const images = Array.isArray(roomType.associations.images.image)
@@ -161,15 +199,18 @@ const fetchAllRoomTypes = async () => {
                   }
                 }
               } catch (imageError) {
-                console.warn("Error processing image for room:", roomId, imageError);
+                console.warn("  ⚠️  Error processing image for room:", roomId, imageError);
               }
               
-              const roomName = extractText(roomType.name);
+              // Use the language-aware extraction function
+              const roomName = extractLanguageText(roomType.name, `Room Type ${roomId}`);
               const roomSlug = generateSlug(roomName);
+              
+              console.log(`  🏷️  Room: "${roomName}" → Slug: "${roomSlug}"`);
               
               // Skip if we've already seen this room type (avoid duplicates)
               if (seenSlugs.has(roomSlug)) {
-                console.log(`Skipping duplicate room type: ${roomName} (${roomSlug})`);
+                console.log(`  🔄 Skipping duplicate room type: ${roomName} (${roomSlug})`);
                 return null;
               }
               seenSlugs.add(roomSlug);
@@ -184,11 +225,11 @@ const fetchAllRoomTypes = async () => {
                   availableCount = hotelRooms.length;
                 }
               } catch (availabilityError) {
-                console.warn("Error processing availability for room:", roomId, availabilityError);
+                console.warn("  ⚠️  Error processing availability for room:", roomId, availabilityError);
                 availableCount = 1; // Default to 1 if we can't determine
               }
               
-              return {
+              const roomTypeData = {
                 id: roomType.id || roomId,
                 type: roomName,
                 slug: roomSlug,
@@ -197,28 +238,40 @@ const fetchAllRoomTypes = async () => {
                 image: imageUrl,
                 amenities: amenities,
                 available: availableCount,
-                description: extractText(roomType.description_short) || extractText(roomType.description) || '',
+                description: extractLanguageText(roomType.description_short) || extractLanguageText(roomType.description) || '',
                 hotelId: hotel.id,
                 hotelName: hotel.name,
                 hotelLocation: hotel.location
               };
               
+              console.log(`  ✅ Successfully processed room: "${roomName}" for hotel "${hotel.name}"`);
+              return roomTypeData;
+              
             } catch (error) {
-              console.error(`Error fetching room type ${roomRef.id || 'unknown'}:`, error);
+              console.error(`  ❌ Error fetching room type ${roomRef.id || 'unknown'}:`, error);
               return null;
             }
           });
           
           const roomResults = await Promise.all(roomPromises);
           const validRooms = roomResults.filter((room): room is RoomType => room !== null);
+          
+          console.log(`  ✅ Hotel ${hotel.name} contributed ${validRooms.length} unique room types`);
           allRooms.push(...validRooms);
+        } else {
+          console.log(`  ⚠️  No room_types found for hotel: ${hotel.name}`);
         }
       }
       
-      console.log(`Successfully processed ${allRooms.length} unique room types`);
+      console.log(`\n🎉 FINAL RESULT: Successfully processed ${allRooms.length} unique room types across all hotels`);
+      console.log('📋 ROOM TYPES FOUND:');
+      allRooms.forEach((room, index) => {
+        console.log(`  ${index + 1}. "${room.type}" (${room.slug}) - ${room.hotelName} - $${room.price}/night`);
+      });
+      
       setAllRoomTypes(allRooms);
     } catch (error) {
-      console.error('Error fetching room types:', error);
+      console.error('❌ Error fetching room types:', error);
     } finally {
       setIsLoadingRooms(false);
     }
