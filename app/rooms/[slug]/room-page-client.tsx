@@ -225,6 +225,9 @@ export default function RoomPageClient() {
 
               if (roomTypeUrl.startsWith('http://')) {
                 roomTypeUrl = roomTypeUrl.replace('http://', 'https://');
+                console.log(`Replaced ${roomId} to: ${roomTypeUrl}`);
+              } else {
+                console.log(`DID NOT Replaced ${roomId} to: ${roomTypeUrl}`);
               }
               
               console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
