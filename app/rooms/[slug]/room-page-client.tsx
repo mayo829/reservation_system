@@ -222,6 +222,10 @@ export default function RoomPageClient() {
                 console.error("No valid URL found in room reference:", roomRef);
                 continue;
               }
+
+              if (roomTypeUrl.startsWith('http://')) {
+                roomTypeUrl = roomTypeUrl.replace('http://', 'https://');
+              }
               
               console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
               
