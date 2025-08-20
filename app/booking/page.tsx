@@ -142,6 +142,13 @@ function BookingForm() {
             }
             
             const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
+
+            if (roomTypeUrl.startsWith('http://')) {
+              roomTypeUrl = roomTypeUrl.replace('http://', 'https://');
+              console.log(`Replaced ${roomId} to: ${roomTypeUrl}`);
+            } else {
+              console.log(`DID NOT Replaced ${roomId} to: ${roomTypeUrl}`);
+            }
             
             console.log(`Fetching room type from: ${roomTypeUrl}?ws_key=${apiKey}`)
             

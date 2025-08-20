@@ -85,6 +85,13 @@ const fetchAllRoomTypes = async () => {
                 console.error("No valid URL found in room reference:", roomRef);
                 return null;
               }
+
+              if (roomTypeUrl.startsWith('http://')) {
+                roomTypeUrl = roomTypeUrl.replace('http://', 'https://');
+                console.log(`Replaced ${roomId} to: ${roomTypeUrl}`);
+              } else {
+                console.log(`DID NOT Replaced ${roomId} to: ${roomTypeUrl}`);
+              }
               
               console.log(`Fetching room type ${roomId} from: ${roomTypeUrl}`);
               
