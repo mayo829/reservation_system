@@ -10,10 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, MapPin, Star, Wifi, Car, Coffee, Waves, CheckCircle, Mail, Phone } from "lucide-react"
+import { MapPin, Star, Wifi, Car, Coffee, Waves, CheckCircle, Mail, Phone } from "lucide-react"
 import { format } from "date-fns"
+import { DatePicker } from '@/app/components/DatePicker';
 import Image from "next/image"
 
 // Function to check room availability for specific dates
@@ -839,53 +838,15 @@ function BookingForm() {
                     </Select>
                   </div>
 
-                  {/* Date Range Selection */}
-                  <div className="xl:col-span-2 space-y-2 w-full min-w-0">
-                    <Label className="text-sm font-medium text-gray-700">Stay Dates</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="h-12 w-full min-w-0 justify-start text-left font-normal bg-transparent px-3"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                          <span className="text-sm truncate">
-                            {checkIn && checkOut 
-                              ? `${format(checkIn, "MMM dd")} - ${format(checkOut, "MMM dd")}`
-                              : "Select dates"}
-                          </span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <div className="w-[300px] h-[300px]">
-                          <Calendar 
-                            mode="range" 
-                            selected={{ from: checkIn, to: checkOut }}
-                            onSelect={(range) => {
-                              setCheckIn(range?.from);
-                              setCheckOut(range?.to);
-                            }}
-                            initialFocus
-                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                            numberOfMonths={1}
-                            modifiers={{
-                              selected: (date) => {
-                                if (!checkIn || !checkOut) return false;
-                                return date >= checkIn && date <= checkOut;
-                              },
-                            }}
-                            modifiersStyles={{
-                              selected: {
-                                backgroundColor: '#3b82f6',
-                                color: 'white',
-                              }
-                            }}
-                            fixedWeeks
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  {/* Date Selection - Using Reusable DatePicker Component */}
+                  <DatePicker
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    onCheckInChange={setCheckIn}
+                    onCheckOutChange={setCheckOut}
+                    layout="horizontal"
+                    showLabels={true}
+                  />
 
                   {/* Adults and Children */}
                   <div className="grid md:grid-cols-2 gap-4">
@@ -962,9 +923,15 @@ function BookingForm() {
                                 <h4 className="font-medium text-white">{room.type}</h4>
                                 <div className="text-right">
                                   <p className="text-lg font-medium text-white">${room.price}/night</p>
-                                  <p className={`text-sm ${room.available > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {room.available > 0 ? `${room.available} available` : 'Fully booked'}
-                                  </p>
+                                  {room.isAvailableForDates ? (
+                                    <p className="text-sm text-green-400 font-medium">
+                                      {room.available} available
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-red-400 font-medium">
+                                      Not Available For Selected Dates
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               <p className="text-sm text-gray-200 mb-2">Capacity: {room.capacity}</p>
@@ -978,12 +945,12 @@ function BookingForm() {
                               <div className="flex gap-2">
                                 <Button
                                   size="sm"
-                                  className={`flex-1 rounded-full ${
+                                  className={`flex-1 rounded-full text-white ${
                                     !room.isAvailableForDates
-                                      ? 'bg-gray-500 hover:bg-gray-600 cursor-not-allowed opacity-60 text-red-300'
+                                      ? 'bg-gray-500 hover:bg-gray-600 cursor-not-allowed opacity-60'
                                       : selectedRoom?.id === room.id
-                                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                                      : 'bg-cyan-400 hover:bg-cyan-500 text-white'
+                                      ? 'bg-green-500 hover:bg-green-600'
+                                      : 'bg-cyan-400 hover:bg-cyan-500'
                                   }`}
                                   disabled={!room.isAvailableForDates}
                                   onClick={() => {
@@ -1003,7 +970,7 @@ function BookingForm() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="flex-1 bg-white bg-opacity-25 hover:bg-white hover:bg-opacity-20 text-white border-white border-opacity-30 rounded-full"
+                                  className="flex-1 bg-white bg-opacity-10 hover:bg-white hover:bg-opacity-20 text-white border-white border-opacity-30 rounded-full"
                                   onClick={() => {
                                     const roomSlug = room.type.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
                                     window.open(`/rooms/${roomSlug}?hotelId=${selectedHotelData?.id}&roomId=${room.id}`, '_blank');

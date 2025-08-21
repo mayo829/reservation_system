@@ -64,52 +64,78 @@ export default function BookingBar() {
             </Select>
           </div>
 
-          {/* Date Range Selection */}
+          {/* Date Selection - Separate Check-in and Check-out */}
           <div className="xl:col-span-2 space-y-2 w-full min-w-0">
             <Label className="text-sm font-medium text-gray-700">Dates</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-12 w-full min-w-0 justify-start text-left font-normal bg-transparent px-3"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm truncate">
-                    {checkIn && checkOut 
-                      ? `${format(checkIn, "MMM dd")} - ${format(checkOut, "MMM dd")}`
-                      : "Select dates"}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <div className="w-[300px] h-[300px]">
-                  <Calendar 
-                    mode="range" 
-                    selected={{ from: checkIn, to: checkOut }}
-                    onSelect={(range) => {
-                      setCheckIn(range?.from);
-                      setCheckOut(range?.to);
-                    }}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Check-in Date */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-12 w-full justify-start text-left font-normal bg-transparent px-2"
+                  >
+                    <CalendarIcon className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs truncate">
+                      {checkIn ? format(checkIn, "MMM dd") : "Check-in"}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={checkIn}
+                    onSelect={setCheckIn}
                     initialFocus
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                    numberOfMonths={1}
-                    modifiers={{
-                      selected: (date) => {
-                        if (!checkIn || !checkOut) return false;
-                        return date >= checkIn && date <= checkOut;
-                      },
+                    disabled={(date) => {
+                      // Disable past dates
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today;
                     }}
-                    modifiersStyles={{
-                      selected: {
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                      }
-                    }}
-                    fixedWeeks
                   />
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+
+              {/* Check-out Date */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-12 w-full justify-start text-left font-normal bg-transparent px-2"
+                  >
+                    <CalendarIcon className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs truncate">
+                      {checkOut ? format(checkOut, "MMM dd") : "Check-out"}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={checkOut}
+                    onSelect={setCheckOut}
+                    initialFocus
+                    disabled={(date) => {
+                      // Disable past dates
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      if (date < today) {
+                        return true;
+                      }
+
+                      // Disable dates before or equal to check-in date
+                      if (checkIn && date <= checkIn) {
+                        return true;
+                      }
+                      
+                      return false;
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Guests - Optimized Layout */}
