@@ -7,7 +7,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { extractLanguageText, extractText } from "@/app/lib/textHelpers";
 import { MapPin, Users, Star } from 'lucide-react';
 
 interface RoomType {
@@ -36,6 +35,57 @@ export default function RoomsPage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  };
+
+  // Helper function to extract text from language objects (same as HotelsContext)
+  const extractLanguageText = (languageObj: any, defaultText = ''): string => {
+    if (!languageObj) return defaultText;
+    
+    // If it's already a string, return it
+    if (typeof languageObj === 'string') return languageObj;
+    
+    // If it has a language array, get the first one or find English
+    if (languageObj.language && Array.isArray(languageObj.language)) {
+      const languages = languageObj.language;
+      
+      // Try to find English first (ID 1 is usually English)
+      const englishLang = languages.find(lang => 
+        lang['@_id'] === '1' || lang['@_id'] === 1
+      );
+      if (englishLang && englishLang['#text']) {
+        return englishLang['#text'];
+      }
+      
+      // Fall back to first language with text
+      const firstLang = languages.find(lang => lang['#text']);
+      if (firstLang && firstLang['#text']) {
+        return firstLang['#text'];
+      }
+    }
+    
+    // If it's a single language object
+    if (languageObj['#text']) {
+      return languageObj['#text'];
+    }
+    
+    return defaultText;
+  };
+
+  // Helper function to safely extract text from nested objects (fallback)
+  const extractText = (value: any, defaultText = '') => {
+    if (typeof value === 'string') return value.trim();
+    if (value && typeof value === 'object') {
+      if (value['#text']) {
+        const text = value['#text'];
+        return typeof text === 'string' ? text.trim() : String(text).trim();
+      }
+      if (value.language && value.language['#text']) {
+        const text = value.language['#text'];
+        return typeof text === 'string' ? text.trim() : String(text).trim();
+      }
+      return String(value).trim();
+    }
+    return defaultText;
   };
 
   // Fetch room types for all hotels - FIXED VERSION
