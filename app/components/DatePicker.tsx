@@ -131,7 +131,7 @@ export function DatePicker({
         // Based on your example, 2025-08-21 has total_available_rooms: 0 and should be red
         const isUnavailable = dayData.total_available_rooms === 0;
 
-        console.log(`Date ${dateKey}: available_rooms=${dayData.total_available_rooms}, booked_rooms=${dayData.total_booked_rooms}, unavailable=${isUnavailable}`);
+        // console.log(`Date ${dateKey}: available_rooms=${dayData.total_available_rooms}, booked_rooms=${dayData.total_booked_rooms}, unavailable=${isUnavailable}`);
 
         if (isUnavailable) {
           unavailableDates.add(dateKey);

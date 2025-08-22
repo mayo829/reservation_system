@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Star, Wifi, Car, Coffee, Waves, CheckCircle, Mail, Phone } from "lucide-react"
 import { format } from "date-fns"
 import { DatePicker } from '@/app/components/DatePicker';
+import { extractLanguageText, extractText } from "@/app/lib/textHelpers";
 import Image from "next/image"
 
 // Simulate availability when API is not accessible
@@ -177,57 +178,6 @@ function BookingForm() {
         }
         
         console.log("Processing room type refs:", roomTypeRefs)
-        
-        // Helper function to extract text from language objects (same as HotelsContext)
-        const extractLanguageText = (languageObj: any, defaultText = ''): string => {
-          if (!languageObj) return defaultText;
-          
-          // If it's already a string, return it
-          if (typeof languageObj === 'string') return languageObj;
-          
-          // If it has a language array, get the first one or find English
-          if (languageObj.language && Array.isArray(languageObj.language)) {
-            const languages = languageObj.language;
-            
-            // Try to find English first (ID 1 is usually English)
-            const englishLang = languages.find(lang => 
-              lang['@_id'] === '1' || lang['@_id'] === 1
-            );
-            if (englishLang && englishLang['#text']) {
-              return englishLang['#text'];
-            }
-            
-            // Fall back to first language with text
-            const firstLang = languages.find(lang => lang['#text']);
-            if (firstLang && firstLang['#text']) {
-              return firstLang['#text'];
-            }
-          }
-          
-          // If it's a single language object
-          if (languageObj['#text']) {
-            return languageObj['#text'];
-          }
-          
-          return defaultText;
-        };
-
-        // Helper function to safely extract text from nested objects (fallback)
-        const extractText = (value: any, defaultText = '') => {
-          if (typeof value === 'string') return value.trim()
-          if (value && typeof value === 'object') {
-            if (value['#text']) {
-              const text = value['#text']
-              return typeof text === 'string' ? text.trim() : String(text).trim()
-            }
-            if (value.language && value.language['#text']) {
-              const text = value.language['#text']
-              return typeof text === 'string' ? text.trim() : String(text).trim()
-            }
-            return String(value).trim()
-          }
-          return defaultText
-        }
         
         // Fetch details for each room type
         const roomPromises = roomTypeRefs.map(async (roomRef) => {
@@ -725,7 +675,7 @@ function BookingForm() {
                           <SelectItem key={hotel.id} value={hotel.id}>
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4" />
-                              {hotel.name} - {hotel.location}
+                              {hotel.name} - {hotel.city}
                             </div>
                           </SelectItem>
                         ))}

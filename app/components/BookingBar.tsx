@@ -55,7 +55,7 @@ export default function BookingBar() {
                       <MapPin className="w-4 h-4" />
                       <div>
                         <div className="font-medium text-sm">{hotel.name}</div>
-                        <div className="text-xs text-gray-500">{hotel.location}</div>
+                        <div className="text-xs text-gray-500">{hotel.city}</div>
                       </div>
                     </div>
                   </SelectItem>
