@@ -15,111 +15,6 @@ import { format } from "date-fns"
 import { DatePicker } from '@/app/components/DatePicker';
 import Image from "next/image"
 
-// Function to check room availability for specific dates
-const checkRoomAvailabilityForDates = async (roomId: string | number, hotelId: string, checkIn: Date, checkOut: Date) => {
-  try {
-    const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
-    
-    // Format dates for API (YYYY-MM-DD)
-    const checkInFormatted = format(checkIn, 'yyyy-MM-dd')
-    const checkOutFormatted = format(checkOut, 'yyyy-MM-dd')
-    
-    console.log(`Checking availability for room ${roomId} from ${checkInFormatted} to ${checkOutFormatted}`)
-    
-    // Try to get booking information for the room within the date range
-    // This is a simplified approach - in a real system, you'd query the booking/reservation API
-    const bookingUrl = `https://webapi.doturkiye.com/admin-dev/api/bookings?ws_key=${apiKey}&filter[id_room]=${roomId}&filter[date_from]=[${checkInFormatted},${checkOutFormatted}]&filter[date_to]=[${checkInFormatted},${checkOutFormatted}]`
-    
-    try {
-      const response = await fetch(bookingUrl)
-      
-      if (response.ok) {
-        const responseText = await response.text()
-        console.log(`Booking check response for room ${roomId}:`, responseText.substring(0, 200))
-        
-        // Parse XML response
-        const { XMLParser } = await import('fast-xml-parser')
-        const parser = new XMLParser({
-          ignoreAttributes: false,
-          attributeNamePrefix: "@_"
-        })
-        
-        const bookingData = parser.parse(responseText)
-        const bookings = bookingData.qloapps?.bookings?.booking
-        
-        if (bookings) {
-          // If bookings exist, check how many rooms are booked
-          const bookedRooms = Array.isArray(bookings) ? bookings.length : 1
-          console.log(`Found ${bookedRooms} existing bookings for room ${roomId}`)
-          
-          // Get total room capacity by checking room type
-          const roomCapacity = await getRoomCapacity(roomId, hotelId)
-          const availableCount = Math.max(0, roomCapacity - bookedRooms)
-          
-          return {
-            available: availableCount > 0,
-            count: availableCount
-          }
-        } else {
-          // No bookings found, room should be available
-          const roomCapacity = await getRoomCapacity(roomId, hotelId)
-          return {
-            available: true,
-            count: roomCapacity
-          }
-        }
-      } else {
-        console.log(`Booking API not accessible for room ${roomId}, status:`, response.status)
-        // If booking API is not accessible, simulate availability based on dates and room ID
-        return simulateAvailability(roomId, checkIn, checkOut)
-      }
-    } catch (apiError) {
-      console.log(`Booking API error for room ${roomId}:`, apiError)
-      // If API fails, simulate availability
-      return simulateAvailability(roomId, checkIn, checkOut)
-    }
-    
-  } catch (error) {
-    console.error('Error checking room availability:', error)
-    // Default to available if there's an error
-    return { available: true, count: 2 }
-  }
-}
-
-// Helper function to get room capacity
-const getRoomCapacity = async (roomId: string | number, hotelId: string) => {
-  try {
-    const apiKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY
-    const roomUrl = `https://webapi.doturkiye.com/admin-dev/api/room_types/${roomId}?ws_key=${apiKey}`
-    
-    const response = await fetch(roomUrl)
-    if (response.ok) {
-      const responseText = await response.text()
-      const { XMLParser } = await import('fast-xml-parser')
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: "@_"
-      })
-      
-      const roomData = parser.parse(responseText)
-      const roomType = roomData.qloapps?.room_type
-      
-      if (roomType?.associations?.hotel_rooms?.hotel_room) {
-        const hotelRooms = Array.isArray(roomType.associations.hotel_rooms.hotel_room)
-          ? roomType.associations.hotel_rooms.hotel_room
-          : [roomType.associations.hotel_rooms.hotel_room]
-        return hotelRooms.length
-      }
-    }
-    
-    // Default capacity if unable to fetch
-    return 3
-  } catch (error) {
-    console.warn('Error fetching room capacity:', error)
-    return 3
-  }
-}
-
 // Simulate availability when API is not accessible
 const simulateAvailability = (roomId: string | number, checkIn: Date, checkOut: Date) => {
   // Create a deterministic "availability" based on room ID and dates
@@ -846,6 +741,9 @@ function BookingForm() {
                     onCheckOutChange={setCheckOut}
                     layout="horizontal"
                     showLabels={true}
+                    hotelId={selectedHotel}
+                    adults={parseInt(adults)}
+                    children={parseInt(children)}
                   />
 
                   {/* Adults and Children */}

@@ -1,53 +1,13 @@
-// components/DatePicker.tsx - Reusable Date Picker Component
+// components/DatePicker.tsx - Updated with Hotel ARI API Integration
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-
-// Simulate unavailable dates (replace with real API data)
-const isDateUnavailable = (date: Date) => {
-  // Simulate some unavailable dates based on patterns
-  // In a real application, this would come from your booking API
-  
-  const dayOfMonth = date.getDate();
-  const dayOfWeek = date.getDay();
-  const month = date.getMonth();
-  
-  // Example patterns for unavailable dates:
-  // 1. Certain dates of the month (simulate maintenance days)
-  if (dayOfMonth === 15 || dayOfMonth === 30) {
-    return true;
-  }
-  
-  // 2. Some weekends in peak season are fully booked
-  if ((dayOfWeek === 5 || dayOfWeek === 6) && (month >= 5 && month <= 8)) {
-    // Not all weekends, just some based on a pattern
-    return (dayOfMonth % 3 === 0);
-  }
-  
-  // 3. Random pattern for demonstration (every 7th day in some months)
-  if (month === 6 || month === 7) { // July and August
-    return (dayOfMonth % 7 === 0);
-  }
-  
-  // 4. Simulate holiday blackout dates
-  const dateString = date.toISOString().split('T')[0];
-  const blackoutDates = [
-    '2025-12-24', '2025-12-25', '2025-12-31', // Christmas and New Year
-    '2025-07-04', // Independence Day
-    '2025-11-28', '2025-11-29', // Thanksgiving weekend
-  ];
-  
-  if (blackoutDates.includes(dateString)) {
-    return true;
-  }
-  
-  return false;
-};
+import { format, addDays, startOfDay } from "date-fns";
 
 interface DatePickerProps {
   checkIn: Date | undefined;
@@ -57,6 +17,35 @@ interface DatePickerProps {
   layout?: 'horizontal' | 'vertical' | 'compact';
   showLabels?: boolean;
   className?: string;
+  hotelId?: string; // Hotel ID for availability checking
+  adults?: number;   // Number of adults for availability checking
+  children?: number; // Number of children for availability checking
+}
+
+interface HotelAriResponse {
+  hotel_aris: Array<{
+    id_hotel: string;
+    date_from: string;
+    date_to: string;
+    currency: string;
+    total_rooms: number;
+    total_available_rooms: number;
+    total_unavailable_rooms: number;
+    total_booked_rooms: number;
+    room_types: Array<{
+      id_room_type: string;
+      base_price: number;
+      base_price_with_tax: number;
+      total_price: number;
+      total_price_with_tax: number;
+      name: string;
+      rooms: {
+        available: Record<string, any>;
+        booked: Record<string, any>;
+        unavailable: Record<string, any>;
+      };
+    }>;
+  }>;
 }
 
 export function DatePicker({
@@ -66,8 +55,144 @@ export function DatePicker({
   onCheckOutChange,
   layout = 'horizontal',
   showLabels = true,
-  className = ''
+  className = '',
+  hotelId,
+  adults = 2,
+  children = 0
 }: DatePickerProps) {
+  
+  // Cache for unavailable dates
+  const [unavailableDatesCache, setUnavailableDatesCache] = useState<Set<string>>(new Set());
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+  // API configuration - same as your test HTML
+  const apiUrl = process.env.NEXT_PUBLIC_QLOAPPS_ARI_API_URL;
+  const wsKey = process.env.NEXT_PUBLIC_QLOAPPS_API_KEY;
+  
+  // Function to create request XML for the Hotel ARI API
+  const createRequestXML = (hotelId: string, dateFrom: string, dateTo: string, adults: number, children: number): string => {
+    return `
+    <qloapps xmlns:xlink="http://www.w3.org/1999/xlink">
+        <hotel_ari>
+            <id_hotel>${hotelId}</id_hotel>
+            <date_from>${dateFrom}</date_from>
+            <date_to>${dateTo}</date_to>
+            <get_available_rooms>1</get_available_rooms>
+            <get_booked_rooms>1</get_booked_rooms>
+            <get_unavailable_rooms>1</get_unavailable_rooms>
+            <date_wise_breakdown>1</date_wise_breakdown>
+            <associations>
+                <room_occupancies>
+                    <room_occupancy>
+                        <adults>${adults}</adults>
+                        <children>${children}</children>
+                    </room_occupancy>
+                </room_occupancies>
+            </associations>
+        </hotel_ari>
+    </qloapps>
+    `;
+  };
+
+  // Function to check availability for a date range using Hotel ARI API
+  const checkDateRangeAvailability = useCallback(async (hotelId: string, startDate: Date, endDate: Date, adults: number, children: number): Promise<Set<string>> => {
+    const fullUrl = `${apiUrl}?ws_key=${wsKey}&output_format=JSON`;
+    const dateFrom = format(startDate, 'yyyy-MM-dd');
+    const dateTo = format(endDate, 'yyyy-MM-dd');
+    const requestXML = createRequestXML(hotelId, dateFrom, dateTo, adults, children);
+
+    console.log('Making API request to:', fullUrl);
+    console.log('Request XML:', requestXML);
+
+    try {
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml',
+          'Accept': 'application/json',
+        },
+        body: requestXML
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status: ${response.status}`);
+      }
+
+      const responseData: HotelAriResponse = await response.json();
+      console.log('API Response:', responseData);
+      
+      const unavailableDates = new Set<string>();
+
+      // Process each day in the response
+      responseData.hotel_aris.forEach(dayData => {
+        const dateKey = dayData.date_from;
+        
+        // A date is considered unavailable if there are no available rooms
+        // Based on your example, 2025-08-21 has total_available_rooms: 0 and should be red
+        const isUnavailable = dayData.total_available_rooms === 0;
+
+        console.log(`Date ${dateKey}: available_rooms=${dayData.total_available_rooms}, booked_rooms=${dayData.total_booked_rooms}, unavailable=${isUnavailable}`);
+
+        if (isUnavailable) {
+          unavailableDates.add(dateKey);
+        }
+      });
+
+      console.log(`Found ${unavailableDates.size} unavailable dates for hotel ${hotelId}:`, Array.from(unavailableDates));
+      return unavailableDates;
+
+    } catch (error) {
+      console.error('Error checking date range availability:', error);
+      return new Set(); // Return empty set on error
+    }
+  }, []);
+
+  // Function to check if a specific date is unavailable (synchronous, uses cache)
+  const isDateUnavailable = (date: Date): boolean => {
+    if (!hotelId) return false;
+    
+    const dateKey = format(date, 'yyyy-MM-dd');
+    const isUnavailable = unavailableDatesCache.has(dateKey);
+    
+    // Debug logging
+    if (isUnavailable) {
+      console.log(`Date ${dateKey} is marked as unavailable`);
+    }
+    
+    return isUnavailable;
+  };
+
+  // Pre-load availability for visible date range when hotel changes
+  useEffect(() => {
+    if (!hotelId) {
+      setUnavailableDatesCache(new Set());
+      return;
+    }
+
+    const loadAvailability = async () => {
+      setIsCheckingAvailability(true);
+      
+      try {
+        const today = startOfDay(new Date());
+        const endDate = addDays(today, 90); // Check next 90 days
+        
+        console.log(`Loading availability for hotel ${hotelId} from ${format(today, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}...`);
+        
+        const unavailableDates = await checkDateRangeAvailability(hotelId, today, endDate, adults, children);
+        setUnavailableDatesCache(unavailableDates);
+        
+        console.log(`Cache updated with ${unavailableDates.size} unavailable dates:`, Array.from(unavailableDates));
+        
+      } catch (error) {
+        console.error('Error loading availability:', error);
+        setUnavailableDatesCache(new Set()); // Clear cache on error
+      } finally {
+        setIsCheckingAvailability(false);
+      }
+    };
+
+    loadAvailability();
+  }, [hotelId, adults, children, checkDateRangeAvailability]);
 
   const getLayoutClasses = () => {
     switch (layout) {
@@ -247,6 +372,13 @@ export function DatePicker({
           </PopoverContent>
         </Popover>
       </div>
+      
+      {/* Loading indicator for availability checking */}
+      {isCheckingAvailability && hotelId && (
+        <div className="text-xs text-gray-500 text-center">
+          Checking availability...
+        </div>
+      )}
     </div>
   );
 }
