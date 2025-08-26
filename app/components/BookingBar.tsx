@@ -113,7 +113,7 @@ export default function BookingBar() {
           {/* Search Button */}
           <div className="xl:col-span-6">
             <Button
-              className="w-full h-12 bg-cyan-400 hover:bg-cyan-500 text-white rounded-full flex items-center justify-center gap-2"
+              className="w-full h-12 bg-darkblue hover:bg-darkblue/90  text-white rounded-full flex items-center justify-center gap-2"
               onClick={handleSearch}
               disabled={!isSearchEnabled}
             >
