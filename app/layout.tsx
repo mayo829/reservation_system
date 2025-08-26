@@ -29,7 +29,7 @@ export default function RootLayout({
         <HotelsProvider>
           <CartProvider>
             <Navigation />
-            {children}
+              {children}
             <Footer />
           </CartProvider>
         </HotelsProvider>

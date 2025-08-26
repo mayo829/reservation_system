@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, Mail, Phone, MapPin, Calendar, Users } from "lucide-react"
 import { format } from "date-fns"
+import { useSearchParams } from "next/navigation";
 import Link from "next/link"
 
 export default function ConfirmationPage() {
-  // Generate a random confirmation number
-  const confirmationNumber = `LH${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+  const params = useSearchParams();
+  const confirmationNumber = params.get("id")
 
   return (
     <div className="min-h-screen bg-yellow-50/20 pt-16">

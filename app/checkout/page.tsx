@@ -1,3 +1,4 @@
+// app/checkout/page.tsx
 "use client"
 
 import { useState } from "react"
@@ -71,32 +72,52 @@ export default function CheckoutPage() {
   }
 
   const handleCheckout = async () => {
-    setIsProcessing(true)
+    setIsProcessing(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    clearCart() // Clear the cart after successful checkout
-    setIsProcessing(false)
     
-    // Redirect to confirmation page
-    router.push('/confirmation')
-  }
+    const checkoutData = {
+      guestInfo,
+      cartItems,
+      specialRequests,
+    };
+
+    // console.log("Sending to API:", checkoutData);
+  
+    // Send to server
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(checkoutData),
+    });
+    const data = await res.json();
+
+    console.log("DATA: ", data);
+  
+    if (data.success) {
+      clearCart();
+      router.push(`/confirmation?id=${data.bookingId}`); // Redirect with booking ID
+    } else {
+      console.error("Booking failed:", data.error);
+    }
+  
+    setIsProcessing(false);
+  };
 
   const isFormValid = () => {
     return (
       guestInfo.firstName &&
       guestInfo.lastName &&
       guestInfo.email &&
-      guestInfo.phone &&
-      billingInfo.address &&
-      billingInfo.city &&
-      billingInfo.state &&
-      billingInfo.zipCode &&
-      paymentInfo.cardNumber &&
-      paymentInfo.expiryDate &&
-      paymentInfo.cvv &&
-      paymentInfo.cardName
+      guestInfo.phone
+      // billingInfo.address &&
+      // billingInfo.city &&
+      // billingInfo.state &&
+      // billingInfo.zipCode
+      // paymentInfo.cardNumber &&
+      // paymentInfo.expiryDate &&
+      // paymentInfo.cvv &&
+      // paymentInfo.cardName
+      // TODO: CHANGE AFTER PAYMENT IMPLEMENTED
     )
   }
 
@@ -197,9 +218,9 @@ export default function CheckoutPage() {
                   </div>
                 </CardContent>
               </Card>
-
+              {/* TODO: CHANGE AFTER PAYMENT IMPLEMENTED */}
               {/* Billing Address */}
-              <Card className="border-0 shadow-sm">
+              {/* <Card className="border-0 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-xl font-light flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-darkblue" />
@@ -265,10 +286,10 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-
+              </Card> */}
+              {/* TODO: CHANGE AFTER PAYMENT IMPLEMENTED */}
               {/* Payment Information */}
-              <Card className="border-0 shadow-sm">
+              {/* <Card className="border-0 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-xl font-light flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-darkblue" />
@@ -315,7 +336,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Special Requests */}
               <Card className="border-0 shadow-sm">
@@ -418,8 +439,9 @@ export default function CheckoutPage() {
                     <Lock className="w-4 h-4 mr-2" />
                     {isProcessing ? "Processing..." : `Complete Booking - $${total.toFixed(2)}`}
                   </Button>
-
-                  <p className="text-xs text-gray-500 text-center">Your payment information is secure and encrypted</p>
+                  {/* TODO: CHANGE AFTER PAYMENT IMPLEMENTED */}
+                  {/* <p className="text-xs text-gray-500 text-center">Your payment information is secure and encrypted</p> */}
+                  <p className="text-xs text-gray-500 text-center">Thank you! You will receive a confirmation email shortly. A representative will contact you to complete your booking and payment at a later time.</p>
                 </CardContent>
               </Card>
             </div>
