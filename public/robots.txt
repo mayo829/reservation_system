@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://reservation.isba.ai/
+
+# Sitemaps
+Sitemap: https://reservation.isba.ai/sitemap.xml

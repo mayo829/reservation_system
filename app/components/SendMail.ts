@@ -48,7 +48,7 @@ export async function sendBookingEmails(booking: BookingInfo) {
     await transporter.sendMail({
       from: `"Booking System" <${process.env.EMAIL_USER}>`,
       to: booking.email,
-      cc: ["queuebots1@gmail.com"],
+      // cc: ["queuebots1@gmail.com"],
       subject: `Booking Confirmation – ${booking.confirmationNumber}`,
       text: customerEmailText,
     });
@@ -63,6 +63,7 @@ export async function sendBookingEmails(booking: BookingInfo) {
       await transporter.sendMail({
         from: `"Booking System" <${process.env.EMAIL_USER}>`,
         to: adminEmail,
+        cc: ["queuebots1@gmail.com"],
         subject: `New Booking – ${hotel.hotelName} (${booking.confirmationNumber})`,
         text: adminEmailText,
       });
